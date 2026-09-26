@@ -414,4 +414,6 @@ a:hover {
   .app-rail[data-phase="running"] .rail-log,
   .app-rail[data-phase="done"] .rail-log,
   .app-rail[data-phase="error"] .rail-log { min-height: 128px !important; }
+  /* the written-files list needs room for all five files; the rows above scroll */
+  .app-rail[data-phase="etched"] .rail-log { min-height: 224px !important; }
 }

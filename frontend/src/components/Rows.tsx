@@ -252,7 +252,7 @@ function newBoxRows(state: State): BoxRowData[] {
   const root = state.graph?.root_package ?? "";
   const built = state.builtBoxes.map((b) => {
     const files = state.graph?.layers.find((l) => l.id === b.id)?.files ?? 0;
-    return { id: b.id, intent: b.intent, status: "created" as const, detail: `${root}/${b.id}/ · ${files} files` };
+    return { id: b.id, intent: b.intent, status: "created" as const, detail: `${root}/${b.id}/ · ${files} ${files === 1 ? "file" : "files"}` };
   });
   const pending = state.drawing.new_boxes
     .filter((b) => !state.builtBoxes.some((x) => x.id === b.id))

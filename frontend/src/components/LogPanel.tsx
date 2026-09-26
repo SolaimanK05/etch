@@ -143,6 +143,8 @@ export function LogPanel({ state, simulated = false }: LogPanelProps) {
           display: "flex",
           flexDirection: "column",
           gap: 0,
+          // never spill over the action slot on short windows: scroll instead
+          overflowY: "auto",
         }}>
           <span className="rowIn" style={{
             fontSize: 14,
@@ -161,7 +163,8 @@ export function LogPanel({ state, simulated = false }: LogPanelProps) {
                 key={filePath}
                 className="rowIn"
                 style={{
-                  padding: "10px 0",
+                  padding: "8px 0",
+                  flexShrink: 0,
                   borderTop: "1px solid var(--rule)",
                   display: "flex",
                   alignItems: "center",
@@ -175,15 +178,19 @@ export function LogPanel({ state, simulated = false }: LogPanelProps) {
                   color: "var(--obeys)",
                   width: 12,
                 }}>+</span>
-                <span style={{
+                <span title={filePath} style={{
                   fontFamily: "var(--font-mono)",
                   fontSize: 14,
                   color: "var(--ink)",
+                  minWidth: 0,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
                 }}>
                   {filePath}
                 </span>
                 <span style={{ flexGrow: 1 }} />
-                <span style={{ fontSize: 13, color: "var(--muted)" }}>
+                <span style={{ fontSize: 13, color: "var(--muted)", whiteSpace: "nowrap", flexShrink: 0 }}>
                   {note}
                 </span>
               </div>
