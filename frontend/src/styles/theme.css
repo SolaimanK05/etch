@@ -1,0 +1,358 @@
+:root {
+  /* ground + ink */
+  --paper: #FBFBFA;
+  --surface: #FFFFFF;
+  --rule: #EAEAEA;
+  --ink: #111111;
+  --body: #2F3437;
+  --muted: #6F6E69;
+  --faint: #B5B4AF;
+  --code-bg: #F7F6F3;
+  --hover: #F2F1EE;
+  --dot: rgba(17, 17, 17, 0.08);
+
+  /* semantic pairs */
+  --violation-bg: #FDEBEC;
+  --violation: #9F2F2D;
+  --obeys-bg: #EDF3EC;
+  --obeys: #346538;
+  --working-bg: #FBF3DB;
+  --working: #956400;
+  --etched-bg: #E1F3FE;
+  --etched: #1F6C9F;
+  --row-hover-violation: #FDF7F7;
+
+  /* type */
+  --font-ui: "Geist", ui-sans-serif, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
+  --font-canvas: "Nunito", sans-serif;
+
+  /* shape */
+  --r-code: 4px;
+  --r-control: 6px;
+  --r-panel: 8px;
+  --r-pill: 9999px;
+  --shadow-float: 0 1px 2px rgba(17, 17, 17, 0.03);
+  --shadow-toast: 0 2px 8px rgba(17, 17, 17, 0.04);
+
+  /* motion */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* ── Global reset ── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+#root {
+  height: 100dvh;
+  overflow: hidden;
+}
+
+body {
+  background: var(--paper);
+  color: var(--body);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--ink);
+}
+
+a:hover {
+  color: var(--body);
+}
+
+/* ── Keyframes ── */
+@keyframes rowIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes lineIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes fadeOnly {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: .35; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Utility classes ── */
+.rowIn  { animation: rowIn  200ms var(--ease-out) both; }
+.lineIn { animation: lineIn 150ms var(--ease-out) both; }
+.pulse  { animation: pulse 1.4s ease-in-out infinite; }
+.spin   { animation: spin 700ms linear infinite; }
+
+/* crossfade layer */
+.layer {
+  transition: opacity 200ms ease, filter 200ms ease;
+}
+
+/* press / ghost buttons */
+.press {
+  transition:
+    transform 160ms var(--ease-out),
+    background-color 200ms ease,
+    color 200ms ease,
+    border-color 200ms ease;
+}
+.press:active {
+  transform: scale(0.97);
+}
+
+.field::placeholder { color: var(--muted); }
+.field:focus {
+  outline: none;
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.06);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ghost:hover { background: var(--hover); }
+  .cta:hover   { background: #2B2B2B; }
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .rowIn, .lineIn { animation-name: fadeOnly; }
+  .spin, .pulse   { animation: none; }
+}
+
+/* ── Excalidraw restyle ── */
+.excalidraw {
+  --color-primary: #111111;
+  --color-primary-darker: #000;
+  --color-primary-darkest: #000;
+  --color-primary-light: var(--hover);
+  --island-bg-color: var(--surface);
+  --shadow-island: var(--shadow-float);
+  --ui-font: var(--font-ui);
+}
+
+.excalidraw .Island {
+  border: 1px solid var(--rule) !important;
+  border-radius: 8px !important;
+}
+
+/* ── Responsive ── */
+
+/* 1100px+ : design as drawn, 400px rail */
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.app-body {
+  flex: 1 1 0;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.app-canvas {
+  flex: 1 1 0;
+  position: relative;
+  min-width: 0;
+  background-color: var(--paper);
+  background-image: radial-gradient(var(--dot) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+.app-rail {
+  width: 400px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-left: 1px solid var(--rule);
+  box-sizing: border-box;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 768–1099px */
+@media (max-width: 1099px) {
+  .app-rail {
+    width: 340px;
+  }
+  .rail-heading h1 {
+    font-size: 26px !important;
+  }
+  .firstrun-headline {
+    font-size: 44px !important;
+  }
+}
+
+/* under 768px: stack */
+@media (max-width: 767px) {
+  .app-body {
+    flex-direction: column;
+  }
+
+  .app-canvas {
+    flex: 0 0 56svh;
+    min-height: 300px;
+  }
+
+  .app-rail {
+    width: 100%;
+    flex: 1 1 0;
+    overflow-y: auto;
+    border-left: none;
+    border-top: 1px solid var(--rule);
+  }
+
+  .rail-heading {
+    height: auto !important;
+    min-height: 120px !important;
+  }
+
+
+  .topbar-repo-block,
+  .topbar-activity-pill {
+    display: none !important;
+  }
+
+  .topbar-rescan-label {
+    display: none !important;
+  }
+
+  .firstrun-headline {
+    font-size: 36px !important;
+  }
+
+  .firstrun-layout {
+    padding: 32px 20px !important;
+    flex-direction: column !important;
+  }
+
+  .firstrun-right {
+    display: none !important;
+  }
+
+  .firstrun-left {
+    width: 100% !important;
+    padding: 0 !important;
+  }
+
+  .firstrun-form,
+  .firstrun-steps {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+/* Canvas legend: bottom-centre, clear of Excalidraw's bottom-left zoom/undo and bottom-right help */
+.canvas-legend {
+  position: absolute;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-panel);
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.legend-hint { color: var(--faint); }
+.legend-hint-touch { display: none; }
+@media (hover: none) {
+  .legend-hint-hover { display: none; }
+  .legend-hint-touch { display: inline; }
+}
+@media (max-width: 1099px) {
+  .legend-hint { display: none; }
+}
+@media (max-width: 767px) {
+  /* Excalidraw's mobile toolbar owns the bottom edge: pin the legend top-left instead */
+  .canvas-legend {
+    top: 64px;
+    bottom: auto;
+    left: 12px;
+    transform: none;
+    gap: 10px;
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+}
+
+/* Touch tap targets */
+@media (hover: none) {
+  .press {
+    min-height: 40px;
+    min-width: 40px;
+  }
+}
+
+/* Hover-only styles */
+@media (hover: hover) and (pointer: fine) {
+  .row-item:hover {
+    /* handled via JS/state */
+  }
+}
+
+/* Row right-label slot: 140px as designed; narrower rails show "↛ target" only */
+.row-label-slot { width: 140px; }
+@media (max-width: 1099px) {
+
+  .rule-src { display: none; }
+}
+@media (max-width: 1099px) {
+  /* stack the four labels in one grid cell so the slot is only as wide as its widest label */
+  .row-label-slot { display: grid; width: auto; }
+  .row-label-slot > * { position: static !important; grid-area: 1 / 1; justify-self: end; align-self: center; }
+}
+
+/* Rail dock: invisible wrapper on desktop, one sticky bar on phones */
+.rail-dock { display: contents; }
+
+@media (max-width: 767px) {
+  /* the rail is one scrolling column: nothing may shrink to zero */
+  .app-rail > * { flex-shrink: 0; }
+  .app-rail > ul { overflow: visible !important; max-height: none !important; }
+  .rail-log { min-height: 260px !important; } /* beats the inline minHeight: 0 */
+  .app-rail[data-phase="idle"] .rail-log,
+  .app-rail[data-phase="scanning"] .rail-log { min-height: 0 !important; margin-top: 0 !important; border-top: 0 !important; }
+  .rail-dock {
+    display: block;
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    background: var(--surface);
+    border-top: 1px solid var(--rule);
+  }
+  .rail-dock .action-slot { margin-top: 12px !important; }
+  .rail-dock .rail-footer { margin-top: 0 !important; }
+  .topbar-divider { display: none !important; }
+  .kbd-hint { display: none !important; }
+}
+@media (hover: none) {
+  .kbd-hint { display: none !important; }
+}

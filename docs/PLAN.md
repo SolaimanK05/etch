@@ -22,7 +22,7 @@ Differentiator: the only entry where a drawing is both the architecture rule and
 | 1 | Scaffold (backend/frontend/demo-app) + AGENTS.md | 2 | **3.33** (Plan→Agent, ~25 files + installs) ⚠️ over |
 | 2 | Backend scanner + violation engine | 4 | **0.80** (Agent only, tests pre-written by Claude) ✅ |
 | 3 | Contract compiler + CI workflow | 3 | **0.70** (Agent only, tests pre-written) ✅ |
-| 4 | Excalidraw canvas + sync | 5 | |
+| 4 | Excalidraw canvas + sync | 5 | 4a logic **2.38** ✅ · 4b UI: |
 | 5 | bob-runner SSE | 3 | |
 | 6 | demo-app + tests + planted violations | 3 | **0.67** (Agent only; Claude removed misleading noqa tags) ✅ |
 | 7 | Bob skill + custom mode generator | 2 | |

@@ -1,11 +1,25 @@
 import type { ArchGraph, Drawing } from "../types";
 import type { ExcalidrawElementSkeleton } from "@excalidraw/excalidraw/data/transform";
+import { center, exitPoint, type Point } from "./geometry";
 
 // 6 is FONT_FAMILY.Nunito in @excalidraw/excalidraw 0.18
 export const BOX_PREFIX = "etch-box-";
 export const BOX_WIDTH = 220;
 export const BOX_HEIGHT = 96;
 export const FONT_NUNITO = 6;
+
+// DESIGN.md §6: stroke "1.7-ish", arrows leave a little air at the box border
+const STROKE = 1.7;
+const ARROW_GAP = 8;
+const BEND = 36;
+
+/** Move `p` toward `toward` by `by` pixels. */
+function nudge(p: Point, toward: Point, by: number): Point {
+  const dx = toward.x - p.x;
+  const dy = toward.y - p.y;
+  const len = Math.sqrt(dx * dx + dy * dy);
+  return len > 0 ? { x: p.x + (dx / len) * by, y: p.y + (dy / len) * by } : p;
+}
 
 export function boxId(layer: string): string {
   return BOX_PREFIX + layer;
@@ -74,7 +88,7 @@ export function sceneSkeleton(
       height: BOX_HEIGHT,
       strokeColor: "#111111",
       backgroundColor: "transparent",
-      strokeWidth: 2,
+      strokeWidth: STROKE,
       roughness: 1,
       label: {
         text: layer.id,
@@ -91,44 +105,45 @@ export function sceneSkeleton(
     depSet.add(`${dep.source}>${dep.target}`);
   }
 
-  // One arrow per dependency
+  // One arrow per dependency. Endpoints sit on the box borders (Excalidraw keeps
+  // explicit points even when the arrow is bound), leaving ARROW_GAP of air.
   for (const dep of graph.dependencies) {
     const { source: s, target: t } = dep;
     const sPos = posMap[s] ?? layout[s];
     const tPos = posMap[t] ?? layout[t];
-    const sx = sPos.x + BOX_WIDTH / 2;
-    const sy = sPos.y + BOX_HEIGHT / 2;
-    const tx = tPos.x + BOX_WIDTH / 2;
-    const ty = tPos.y + BOX_HEIGHT / 2;
-    const dx = tx - sx;
-    const dy = ty - sy;
+    const sRect = { x: sPos.x, y: sPos.y, width: BOX_WIDTH, height: BOX_HEIGHT };
+    const tRect = { x: tPos.x, y: tPos.y, width: BOX_WIDTH, height: BOX_HEIGHT };
+    const sc = center(sRect);
+    const tc = center(tRect);
 
-    let points: number[][];
+    // Bidirectional pairs bend to opposite sides (perp = (-dy, dx)) so they never overlap
+    let bendPoint: Point | null = null;
     if (depSet.has(`${t}>${s}`)) {
-      // Bidirectional: add a bent midpoint
+      const dx = tc.x - sc.x;
+      const dy = tc.y - sc.y;
       const len = Math.sqrt(dx * dx + dy * dy);
       const px = len > 0 ? -dy / len : 0;
       const py = len > 0 ? dx / len : 0;
-      points = [
-        [0, 0],
-        [dx / 2 + px * 28, dy / 2 + py * 28],
-        [dx, dy],
-      ];
-    } else {
-      points = [[0, 0], [dx, dy]];
+      bendPoint = { x: (sc.x + tc.x) / 2 + px * BEND, y: (sc.y + tc.y) / 2 + py * BEND };
     }
+
+    const start = nudge(exitPoint(sRect, bendPoint ?? tc), bendPoint ?? tc, ARROW_GAP);
+    const end = nudge(exitPoint(tRect, bendPoint ?? sc), bendPoint ?? sc, ARROW_GAP);
+    const rel = (p: Point): [number, number] => [p.x - start.x, p.y - start.y];
+    const points = bendPoint ? [rel(start), rel(bendPoint), rel(end)] : [rel(start), rel(end)];
 
     elements.push({
       type: "arrow",
       id: `etch-arrow-${s}-${t}`,
-      x: sx,
-      y: sy,
-      points: points as [number, number][],
+      x: start.x,
+      y: start.y,
+      points,
       start: { id: boxId(s) },
       end: { id: boxId(t) },
       strokeColor: "#111111",
-      strokeWidth: 2,
+      strokeWidth: STROKE,
       roughness: 1,
+      roundness: { type: 2 }, // ROUNDNESS.PROPORTIONAL_RADIUS: smooth curve through the bend
       endArrowhead: "arrow",
     } as unknown as ExcalidrawElementSkeleton);
   }
