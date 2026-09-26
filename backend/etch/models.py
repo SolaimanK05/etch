@@ -68,6 +68,27 @@ class ContractsResponse(BaseModel):
     importlinter: str    # full text of a .importlinter file
 
 
+class Note(BaseModel):           # free text on the canvas: annotation, not a rule
+    text: str
+    source: str | None = None    # set when the text is a label on a drawn arrow
+    target: str | None = None
+
+
+class EtchItRequest(CheckRequest):
+    notes: list[Note] = []
+
+
+class PrRequest(ScanRequest):
+    message: str = "Etch: make the code obey the drawing"
+
+
+class PrResponse(BaseModel):
+    branch: str                  # always "etch/make-it-so"
+    commit: str                  # sha of the snapshot commit
+    pushed: bool                 # False when there is no origin remote or the push failed
+    url: str | None = None       # GitHub compare URL to open the pull request
+
+
 class EtchItResponse(BaseModel):
     written: list[str]   # repo-relative POSIX paths written, e.g. [".importlinter"]
     importlinter: str    # text written to .importlinter

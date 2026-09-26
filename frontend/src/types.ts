@@ -60,6 +60,27 @@ export interface ContractsResponse {
   importlinter: string;
 }
 
+export interface Note {
+  text: string;
+  source?: string | null;
+  target?: string | null;
+}
+
+export interface EtchItRequest extends CheckRequest {
+  notes?: Note[];
+}
+
+export interface PrRequest extends ScanRequest {
+  message?: string;
+}
+
+export interface PrResponse {
+  branch: string;
+  commit: string;
+  pushed: boolean;
+  url?: string | null;
+}
+
 export interface EtchItResponse {
   written: string[];
   importlinter: string;

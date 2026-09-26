@@ -9,6 +9,7 @@ import {
   drawingOfGraph,
   layerOfBox,
   layoutLayers,
+  notesFromElements,
   sceneSkeleton,
 } from "./drawing";
 
@@ -121,5 +122,31 @@ describe("drawingFromElements", () => {
       layers: ["api", "db"],
       arrows: [{ source: "api", target: "db" }],
     });
+  });
+});
+
+describe("notesFromElements", () => {
+  it("turns free text and arrow labels into notes, skipping box labels and deleted text", () => {
+    const b = (elementId: string) => ({ elementId });
+    const elements = [
+      { id: "etch-box-api", type: "rectangle" },
+      { id: "etch-box-services", type: "rectangle" },
+      { id: "box-label", type: "text", text: "api", containerId: "etch-box-api" },
+      { id: "a1", type: "arrow", startBinding: b("etch-box-api"), endBinding: b("etch-box-services") },
+      { id: "lbl", type: "text", text: "  all business logic goes through here  ", containerId: "a1" },
+      { id: "free", type: "text", text: "legacy, don't touch", containerId: null },
+      { id: "gone", type: "text", text: "deleted note", isDeleted: true },
+      { id: "blank", type: "text", text: "   " },
+      { id: "u1", type: "rectangle" },
+      { id: "in-user-shape", type: "text", text: "cache layer?", containerId: "u1" },
+      { id: "a2", type: "arrow", startBinding: b("etch-box-api"), endBinding: null },
+      { id: "loose-lbl", type: "text", text: "half-drawn", containerId: "a2" },
+    ];
+    expect(notesFromElements(elements)).toEqual([
+      { text: "all business logic goes through here", source: "api", target: "services" },
+      { text: "legacy, don't touch", source: null, target: null },
+      { text: "cache layer?", source: null, target: null },
+      { text: "half-drawn", source: null, target: null },
+    ]);
   });
 });

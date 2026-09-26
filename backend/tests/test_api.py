@@ -82,11 +82,47 @@ def test_etch_it_writes_importlinter_with_lf_endings(tmp_path):
     )
     assert resp.status_code == 200
     body = resp.json()
-    assert body["written"] == [".importlinter"]
+    assert body["written"] == ETCHED
+    for path in ETCHED:
+        assert b"\r\n" not in (repo / path).read_bytes(), path
     raw = (repo / ".importlinter").read_bytes()
-    assert b"\r\n" not in raw
     assert raw.decode("utf-8") == body["importlinter"]
     assert "root_package = fixpkg" in body["importlinter"]
+
+
+ETCHED = [
+    ".importlinter",
+    ".github/workflows/etch.yml",
+    ".bob/skills/etch-architecture/SKILL.md",
+    ".bob/custom_modes.yaml",
+    ".etch/drawing.json",
+]
+
+
+def test_etch_it_carries_notes_into_the_sketch_and_the_skill(tmp_path):
+    repo = tmp_path / "repo"
+    shutil.copytree(FIXREPO, repo)
+    notes = [{"text": "all business logic goes through here", "source": "api", "target": "services"}]
+    resp = client.post(
+        "/api/etch-it",
+        json={"repo_path": str(repo), "root_package": "fixpkg", "drawing": DRAWING, "notes": notes},
+    )
+    assert resp.status_code == 200
+    assert "all business logic goes through here" in (repo / ".etch/drawing.json").read_text(encoding="utf-8")
+    skill = (repo / ".bob/skills/etch-architecture/SKILL.md").read_text(encoding="utf-8")
+    assert "- api → services: all business logic goes through here" in skill
+
+
+def test_etch_it_never_overwrites_a_users_own_bob_modes(tmp_path):
+    repo = tmp_path / "repo"
+    shutil.copytree(FIXREPO, repo)
+    (repo / ".bob").mkdir()
+    mine = "customModes:\n  - slug: my-mode\n    name: Mine\n    roleDefinition: mine\n"
+    (repo / ".bob/custom_modes.yaml").write_text(mine, encoding="utf-8")
+    resp = client.post("/api/etch-it", json={"repo_path": str(repo), "root_package": "fixpkg", "drawing": DRAWING})
+    assert resp.status_code == 200
+    assert ".bob/custom_modes.yaml" not in resp.json()["written"]
+    assert (repo / ".bob/custom_modes.yaml").read_text(encoding="utf-8") == mine
 
 
 def test_etch_it_missing_repo_returns_400():
