@@ -16,7 +16,7 @@ from etch.models import (
     MakeItSoRequest,
     ScanRequest,
 )
-from etch.scanner import scan_repo
+from etch.scanner import ScanError, scan_repo
 from etch.violations import find_violations
 
 app = FastAPI(title="Etch", version="0.1.0")
@@ -41,6 +41,11 @@ def resolve_repo(repo_path: str) -> Path:
 @app.exception_handler(NotImplementedError)
 def not_implemented_handler(request: Request, exc: NotImplementedError) -> JSONResponse:
     return JSONResponse(status_code=501, content={"detail": str(exc)})
+
+
+@app.exception_handler(ScanError)
+def scan_error_handler(request: Request, exc: ScanError) -> JSONResponse:
+    return JSONResponse(status_code=400, content={"detail": str(exc)})
 
 
 @app.get("/api/health")
