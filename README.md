@@ -50,21 +50,14 @@ Tools like import-linter can enforce layers, but their config is hand-written an
 ## What Etch does
 
 ```mermaid
+%%{init: {"theme": "neutral"}}%%
 flowchart TD
-    A["Your Python repo"] -->|scan| B["Draw<br/>keep the arrows you allow,<br/>add the boxes you want"]
-    B --> C["Red arrows<br/>every import that breaks<br/>the drawing, file:line"]
-    C -->|Make it so| D["IBM Bob<br/>refactors and builds<br/>the new boxes"]
-    D -->|rescan + tests| E["Code obeys<br/>the drawing"]
-    E -->|Etch it| F["Contracts, Bob skill,<br/>PR check"]
-    F --> G["A PR that breaks<br/>the drawing is blocked"]
-
-    style A fill:#FBFBFA,stroke:#111111,color:#111111
-    style B fill:#FFFFFF,stroke:#111111,color:#111111
-    style C fill:#FDEBEC,stroke:#9F2F2D,color:#9F2F2D
-    style D fill:#FBF3DB,stroke:#7A5200,color:#5C3D00
-    style E fill:#EDF3EC,stroke:#346538,color:#346538
-    style F fill:#E1F3FE,stroke:#1F6C9F,color:#1F6C9F
-    style G fill:#FDEBEC,stroke:#9F2F2D,color:#9F2F2D
+    A[Python repo] -->|scan| B[Draw the architecture]
+    B --> C[Red arrows: imports that break it]
+    C -->|Make it so| D[IBM Bob refactors]
+    D -->|rescan + tests| E[Code obeys the drawing]
+    E -->|Etch it| F[Contracts, Bob skill, PR check]
+    F --> G[Breaking PRs are blocked]
 ```
 
 1. **Scan.** Point Etch at a Python repo. It reads every import with [grimp](https://github.com/seddonym/grimp), including the ones hidden inside functions, and draws the real architecture as boxes and arrows. Each top-level package is one box.
@@ -141,29 +134,26 @@ Etch it writes import-linter contracts and a GitHub Action. A PR that breaks the
 What happens when you press **Make it so**:
 
 ```mermaid
+%%{init: {"theme": "neutral"}}%%
 sequenceDiagram
-    autonumber
     actor You
     participant UI as Etch UI
     participant API as Etch backend
-    participant Bob as IBM Bob Shell
-    participant Repo as Your repo
+    participant Bob as Bob Shell
+    participant Repo as Repo
 
-    You->>UI: Make it so (budget: max 1 Bobcoin)
-    UI->>API: POST /api/make-it-so (drawing, max_cost)
-    API->>Repo: scan imports (grimp)
-    API-->>UI: violations
-    API->>Bob: bob run --mode agent --format stream-json --max-cost 1
-    Note over API,Bob: prompt = allowed arrows, every broken import with file:line,<br/>the packages to create, the exact test command
-    loop every tool call Bob makes
-        Bob->>Repo: read, edit, create package
-        Bob-->>API: stream-json event
-        API->>Repo: rescan (no AI)
-        API-->>UI: log line, violations, new packages (SSE)
+    You->>UI: Make it so
+    UI->>API: drawing + budget
+    API->>Repo: scan
+    API->>Bob: rules, broken imports, boxes to build
+    loop each tool call
+        Bob->>Repo: edit
+        API->>Repo: rescan
+        API-->>UI: live update
     end
-    Bob-->>API: result (session_costs)
-    API->>Repo: pytest -q
-    API-->>UI: tests, done (Bobcoins spent, boxes still missing)
+    Bob-->>API: result + cost
+    API->>Repo: run tests
+    API-->>UI: done
 ```
 
 A run only counts as done when every broken import is gone, every drawn box is a real package, and the rescan succeeds. Otherwise Etch says what's left and offers **Undo changes**. **Stop** kills Bob's whole process tree.
@@ -237,34 +227,26 @@ A run only counts as done when every broken import is gone, every drawn box is a
 ## Architecture
 
 ```mermaid
+%%{init: {"theme": "neutral"}}%%
 flowchart TB
-    subgraph Browser["Browser · React + TypeScript"]
-        CV["Canvas<br/>Excalidraw engine + Etch toolbar"]
-        OV["SVG overlay<br/>red arrows · NEW / CREATED tags"]
-        RL["Rail<br/>rows · live log · Bobcoins"]
+    subgraph Browser
+        CV[Canvas]
+        OV[Overlay]
+        RL[Rail]
     end
-
-    subgraph Backend["Backend · Python 3.12 + FastAPI"]
-        SC["scanner<br/>grimp import graph"]
-        VI["violations"]
-        CO["contracts<br/>import-linter"]
-        SK["skillgen<br/>Bob skill · mode · PR check"]
-        BR["bob_runner<br/>Bob Shell stream"]
-        GO["gitops<br/>etch/make-it-so branch"]
+    subgraph Backend[FastAPI backend]
+        SC[scanner]
+        VI[violations]
+        CO[contracts]
+        SK[skillgen]
+        BR[bob_runner]
+        GO[gitops]
     end
-
-    Browser -- "REST + SSE" --> Backend
-    BR --> BOB["IBM Bob Shell"]
-    SC --> REPO[("Your repo")]
+    Browser -- REST + SSE --> Backend
+    BR --> BOB[Bob Shell]
+    SC --> REPO[(Repo)]
     BOB --> REPO
-    GO --> REPO
-    GO --> GH["GitHub<br/>PR + Actions gate"]
-
-    style Browser fill:#FBFBFA,stroke:#111111,color:#111111
-    style Backend fill:#FBFBFA,stroke:#111111,color:#111111
-    style BOB fill:#FBF3DB,stroke:#7A5200,color:#5C3D00
-    style REPO fill:#FFFFFF,stroke:#111111,color:#111111
-    style GH fill:#E1F3FE,stroke:#1F6C9F,color:#1F6C9F
+    GO --> GH[GitHub]
 ```
 
 Etch obeys its own rule. `etch.models` imports nothing from `etch`, the engine modules import only `etch.models`, and only `etch.main` wires them together.
