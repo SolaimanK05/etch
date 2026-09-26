@@ -135,25 +135,18 @@ What happens when you press **Make it so**:
 
 ```mermaid
 %%{init: {"theme": "neutral"}}%%
-sequenceDiagram
-    actor You
-    participant UI as Etch UI
-    participant API as Etch backend
-    participant Bob as Bob Shell
-    participant Repo as Repo
-
-    You->>UI: Make it so
-    UI->>API: drawing + budget
-    API->>Repo: scan
-    API->>Bob: rules, broken imports, boxes to build
-    loop each tool call
-        Bob->>Repo: edit
-        API->>Repo: rescan
-        API-->>UI: live update
-    end
-    Bob-->>API: result + cost
-    API->>Repo: run tests
-    API-->>UI: done
+flowchart TD
+    A["1 · You press Make it so<br/>with a Bobcoin budget"]
+    B["2 · Etch scans the repo"]
+    C["3 · Bob Shell gets the rules,<br/>every broken import and<br/>the boxes to build"]
+    D["4 · Bob edits the repo"]
+    E["5 · Etch rescans, no AI,<br/>and updates the UI live"]
+    F["6 · Bob finishes and<br/>reports the cost"]
+    G["7 · Etch runs your tests"]
+    H["8 · Done: what was fixed,<br/>what was built, Bobcoins spent"]
+    A --> B --> C --> D --> E
+    E -->|next tool call| D
+    E --> F --> G --> H
 ```
 
 A run only counts as done when every broken import is gone, every drawn box is a real package, and the rescan succeeds. Otherwise Etch says what's left and offers **Undo changes**. **Stop** kills Bob's whole process tree.
