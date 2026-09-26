@@ -121,3 +121,6 @@ build/
 # Etch
 .pytest_cache/
 *.egg-info/
+# Working docs kept locally until submission
+docs/VIDEO_SCRIPT.md
+docs/SUBMISSION.md

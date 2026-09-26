@@ -1,21 +1,8 @@
 # Etch — Design Spec (final, approved)
 
-**v2 (Sun 27 Sep, approved):** `docs/design/CanvasV2.html` (tabs 0–3) overrides the canvas, the landing drawing, colours and type sizes. See §6, §12 and §13; where v2 and the older files disagree, v2 wins.
+This is the reference for Etch's UI. It was built from an interactive prototype (v1) and a v2 mockup; those design files are no longer kept in the repo, so this document is the source of truth. v2 (native canvas, new boxes, Bobcoin highlight, readability) is in §6, §12 and §13.
 
-**Build exactly this.** The approved source of truth is the design canvas "Etch — App Design" (claude.ai artifact). Its files are copied verbatim in `docs/design/`:
-
-| File | What it is |
-|---|---|
-| `docs/design/Prototype.dc.html` | **The interactive prototype. Canonical for layout, copy, colours and every animation.** Its `<helmet><style>` and inline styles are the CSS to port; its `Component` class is the state machine to port. |
-| `docs/design/Empty.dc.html` | 0 · First run screen |
-| `docs/design/Main.dc.html` | 1 · Rules broken (idle) |
-| `docs/design/Running.dc.html` | 2 · Bob is making it so |
-| `docs/design/Etched.dc.html` | 3 · Etched |
-| `docs/design/System.dc.html` | Colour, type, controls and motion reference sheet |
-
-The `.dc.html` files use a design-tool template syntax (`<x-dc>`, `{{holes}}`, `<sc-for>`, `<sc-if>`); port the markup and styles to React/TSX, keep every value. Where this document and the prototype disagree, the prototype wins; tell the user.
-
-Module/file names shown in the mockups (`demo_app.api`, `api/routes.py:3`, etc.) are example data. The real UI shows whatever the scan returns.
+Module/file names in examples (`demo_app.api`, `api/routes.py:3`, etc.) are example data. The real UI shows whatever the scan returns.
 
 ---
 
@@ -72,7 +59,7 @@ All text/background pairs above were contrast-checked (≥ 4.6:1 for text).
 
 | Use | Font | Size / weight / tracking / line-height |
 |---|---|---|
-| Wordmark `etch` | Geist | 22px / 600 / -0.02em / 1, with the hand-drawn underline SVG below it (see prototype header) |
+| Wordmark `etch` | Geist | 22px / 600 / -0.02em / 1, with a hand-drawn underline SVG below it |
 | Rail heading (h1) | Geist | 30px / 600 / -0.02em / 1.15 |
 | First-run headline | Geist | 56px / 600 / -0.03em / 1.05 |
 | Seal word "Etched" | Geist | 32px / 600 / -0.02em / 1 |
@@ -103,9 +90,9 @@ All text/background pairs above were contrast-checked (≥ 4.6:1 for text).
 - **Status pill**: height 24, radius 9999, 11px uppercase, 6px dot in the text colour.
 - **kbd**: mono 11px, `1px` border, radius 4. "Make it so" shows `Ctrl ↵` (dark variant on the black button).
 - **Violation row**: status icon slot (18px) · path in mono 13/500 with `:line` in `--muted` · right label (140px slot) · the offending import line below in a `--code-bg` code block, ellipsis on overflow.
-- **Icons**: inline stroke SVG (2–2.2 stroke, round caps), as in the prototype. No icon library, no emoji.
+- **Icons**: inline stroke SVG (2–2.2 stroke, round caps). No icon library, no emoji.
 
-## 6. Canvas (v2: native Etch canvas, see `docs/design/CanvasV2.html`)
+## 6. Canvas (v2: native Etch canvas)
 
 Excalidraw is the drawing engine only. **None of its own UI is visible**; everything around the drawing is Etch's.
 
@@ -122,7 +109,7 @@ Excalidraw is the drawing engine only. **None of its own UI is visible**; everyt
 - Box subtitle under each label: mono 12px `--muted`, e.g. `demo_app.api · 4 files` (live file count).
 - A **new box** (§12) is drawn dashed (`strokeStyle: "dashed"`, fill `--paper`) with a **NEW** tag (HTML, overlay layer) straddling its top-right corner: height 24, pill, 12px uppercase 500, `--hover` background, `--muted` text, `1px dashed var(--muted)` border. When Bob has built it the box turns into a normal code box and the tag becomes **CREATED** (`--obeys-bg` / `--obeys`, solid transparent border, 240ms colour crossfade), then fades out after 4 s.
 
-## 7. The flow — state machine (port from `Prototype.dc.html`)
+## 7. The flow — state machine
 
 Phases: `empty` → `scanning` → `idle` → `running` → `done` → `etched` (+ `error`).
 
@@ -139,7 +126,7 @@ Branch label: `main` in idle, `etch/make-it-so` from `running` on.
 
 ### Wiring the real Bob run (backend SSE → UI)
 
-The prototype fakes this timeline; the real app drives the same state from `bob run --format stream-json` (see CLAUDE.md "Bob Shell facts"):
+Simulate mode fakes this timeline; a live run drives the same state from `bob run --format stream-json`:
 
 - On start: all rows `queued`, the first open row `fixing`.
 - Each `tool_use` event → one log line. Verb map: `read_file`→`read`, `update_todo_list`→`plan`, subagent tools→`explore` (suffix "subagent"), `write_file`→`write` (suffix `+N` lines, green), `apply_diff`→`edit` (suffix `−a +b`), `execute_command`→`run` (suffix from the tool_result: "18 passed" in green, failures in `--violation`). Timestamp = seconds since start, `00:SS`.

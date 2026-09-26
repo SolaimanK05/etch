@@ -332,7 +332,7 @@ etch/
 ├── demo-app/            the shop app Etch is demoed on (4 planted violations)
 ├── docs/
 │   ├── bob_prompts/     the spec for every Bob task
-│   ├── design/          approved design, prototype and v2 mockup
+│   ├── DESIGN.md        the UI spec
 │   └── demo/            screenshots, Bob's live diff, CI evidence
 ├── bob_sessions/        IBM Bob task summaries
 └── .github/workflows/   the architecture gate
