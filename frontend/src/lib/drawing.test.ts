@@ -149,4 +149,19 @@ describe("notesFromElements", () => {
       { text: "half-drawn", source: null, target: null },
     ]);
   });
+
+  it("uses Excalidraw's unwrapped originalText and folds line breaks", () => {
+    const b = (elementId: string) => ({ elementId });
+    const elements = [
+      { id: "etch-box-api", type: "rectangle" },
+      { id: "etch-box-services", type: "rectangle" },
+      { id: "a1", type: "arrow", startBinding: b("etch-box-api"), endBinding: b("etch-box-services") },
+      { id: "l1", type: "text", text: "all business logic goes\nthere", originalText: "all business logic goes there", containerId: "a1" },
+      { id: "n1", type: "text", text: "two\n  lines" },
+    ];
+    expect(notesFromElements(elements)).toEqual([
+      { text: "all business logic goes there", source: "api", target: "services" },
+      { text: "two lines", source: null, target: null },
+    ]);
+  });
 });

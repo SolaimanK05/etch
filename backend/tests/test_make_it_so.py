@@ -22,6 +22,12 @@ client = TestClient(app, raise_server_exceptions=False)
 DEMO = Path(__file__).resolve().parents[2] / "demo-app"
 FAKE_BOB = Path(__file__).parent / "fixtures" / "fake_bob.py"
 
+# These runs need the demo's 4 planted violations. On a branch where the demo has been
+# fixed and etched (e.g. etch/make-it-so), there is nothing for Bob to fix: skip them.
+needs_pristine_demo = pytest.mark.skipif(
+    (DEMO / ".importlinter").exists(), reason="demo-app already fixed and etched"
+)
+
 INTENDED = {
     "layers": ["api", "services", "db", "notifications"],
     "arrows": [
@@ -48,6 +54,7 @@ def stream(body: dict) -> list[dict]:
     return [json.loads(line[len("data: "):]) for line in resp.text.splitlines() if line.startswith("data: ")]
 
 
+@needs_pristine_demo
 def test_make_it_so_streams_bob_rescans_tests_and_cost(demo_copy):
     events = stream({"repo_path": str(demo_copy), "drawing": INTENDED, "max_cost": 0.5})
     kinds = [e["kind"] for e in events]
@@ -77,6 +84,7 @@ def test_make_it_so_streams_bob_rescans_tests_and_cost(demo_copy):
     assert "--max-cost\n0.5" in (demo_copy / ".fake_bob_args.txt").read_text(encoding="utf-8")
 
 
+@needs_pristine_demo
 def test_make_it_so_reports_bob_failure(demo_copy, monkeypatch):
     monkeypatch.setenv("FAKE_BOB_MODE", "fail")
     events = stream({"repo_path": str(demo_copy), "drawing": INTENDED})

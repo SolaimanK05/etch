@@ -165,6 +165,7 @@ export interface SceneElementLike {
   startBinding?: { elementId: string } | null;
   endBinding?: { elementId: string } | null;
   text?: string;
+  originalText?: string; // Excalidraw keeps the unwrapped text here
   containerId?: string | null;
 }
 
@@ -228,7 +229,8 @@ export function notesFromElements(elements: SceneElementLike[]): Note[] {
   const notes: Note[] = [];
   for (const el of elements) {
     if (el.isDeleted || el.type !== "text") continue;
-    const text = el.text?.trim() ?? "";
+    // prefer the unwrapped text and fold line breaks, so a note reads as one line in the Bob skill
+    const text = (el.originalText ?? el.text ?? "").replace(/\s+/g, " ").trim();
     if (!text) continue;
     // Skip box labels (contained in an etch box)
     if (el.containerId && liveBoxIds.has(el.containerId)) continue;
