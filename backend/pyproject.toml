@@ -1,0 +1,24 @@
+[project]
+name = "etch-backend"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "pydantic>=2",
+    "grimp>=3.5",
+    "import-linter>=2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "httpx"]
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["etch*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

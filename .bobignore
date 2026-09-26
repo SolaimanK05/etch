@@ -89,3 +89,15 @@ id_dsa
 # ============================================
 # DO NOT REMOVE ABOVE PATTERNS
 # ============================================
+# ============================================
+# ETCH - keep Bob out of generated/bulky files (saves Bobcoins)
+# ============================================
+node_modules/
+.venv/
+__pycache__/
+.pytest_cache/
+*.egg-info/
+dist/
+package-lock.json
+spike/
+bob_sessions/
