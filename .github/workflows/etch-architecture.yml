@@ -1,0 +1,38 @@
+name: Etch architecture gate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  architecture:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: demo-app
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install import-linter==2.15
+      - name: Code must obey the Etch drawing
+        if: hashFiles('demo-app/.importlinter') != ''
+        run: lint-imports --no-cache
+
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install -e "backend[dev]"
+      - run: python -m pytest -q backend
+      - run: python -m pytest -q demo-app

@@ -13,6 +13,7 @@ from etch.models import (
     CheckRequest,
     CheckResponse,
     ContractsResponse,
+    EtchItResponse,
     MakeItSoRequest,
     ScanRequest,
 )
@@ -67,6 +68,14 @@ def check(req: CheckRequest) -> CheckResponse:
 @app.post("/api/contracts")
 def contracts(req: CheckRequest) -> ContractsResponse:
     return ContractsResponse(importlinter=compile_contracts(req.drawing, req.root_package))
+
+
+@app.post("/api/etch-it")
+def etch_it(req: CheckRequest) -> EtchItResponse:
+    repo = resolve_repo(req.repo_path)
+    text = compile_contracts(req.drawing, req.root_package)
+    (repo / ".importlinter").write_text(text, encoding="utf-8", newline="\n")
+    return EtchItResponse(written=[".importlinter"], importlinter=text)
 
 
 @app.post("/api/make-it-so")

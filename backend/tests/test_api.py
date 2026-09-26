@@ -1,4 +1,5 @@
 """Backend API tests."""
+import shutil
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -55,9 +56,45 @@ def test_check_fixture_repo_reports_api_to_db():
     ]
 
 
-def test_contracts_still_501_until_task_3():
-    resp = client.post("/api/contracts", json={"drawing": {"layers": [], "arrows": []}})
-    assert resp.status_code == 501
+DRAWING = {
+    "layers": ["api", "services", "db", "notifications"],
+    "arrows": [
+        {"source": "api", "target": "services"},
+        {"source": "services", "target": "db"},
+    ],
+}
+
+
+def test_contracts_returns_compiled_text():
+    resp = client.post("/api/contracts", json={"root_package": "shop", "drawing": DRAWING})
+    assert resp.status_code == 200
+    text = resp.json()["importlinter"]
+    assert "[importlinter:contract:etch-api]" in text
+    assert "allow_indirect_imports = True" in text
+
+
+def test_etch_it_writes_importlinter_with_lf_endings(tmp_path):
+    repo = tmp_path / "repo"
+    shutil.copytree(FIXREPO, repo)
+    resp = client.post(
+        "/api/etch-it",
+        json={"repo_path": str(repo), "root_package": "fixpkg", "drawing": DRAWING},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["written"] == [".importlinter"]
+    raw = (repo / ".importlinter").read_bytes()
+    assert b"\r\n" not in raw
+    assert raw.decode("utf-8") == body["importlinter"]
+    assert "root_package = fixpkg" in body["importlinter"]
+
+
+def test_etch_it_missing_repo_returns_400():
+    resp = client.post(
+        "/api/etch-it",
+        json={"repo_path": "does-not-exist", "root_package": "shop", "drawing": DRAWING},
+    )
+    assert resp.status_code == 400
 
 
 def test_scan_missing_repo_returns_400():

@@ -1,4 +1,4 @@
-import type { ArchGraph, CheckRequest, CheckResponse, ContractsResponse, ScanRequest } from "./types";
+import type { ArchGraph, CheckRequest, CheckResponse, ContractsResponse, EtchItResponse, ScanRequest } from "./types";
 
 const BASE = "/api";
 
@@ -30,4 +30,8 @@ export function check(req: CheckRequest): Promise<CheckResponse> {
 
 export function contracts(req: CheckRequest): Promise<ContractsResponse> {
   return post<ContractsResponse>("/contracts", req);
+}
+
+export function etchIt(req: CheckRequest): Promise<EtchItResponse> {
+  return post<EtchItResponse>("/etch-it", req);
 }

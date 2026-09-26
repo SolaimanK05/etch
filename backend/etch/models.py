@@ -67,6 +67,11 @@ class ContractsResponse(BaseModel):
     importlinter: str    # full text of a .importlinter file
 
 
+class EtchItResponse(BaseModel):
+    written: list[str]   # repo-relative POSIX paths written, e.g. [".importlinter"]
+    importlinter: str    # text written to .importlinter
+
+
 class MakeItSoRequest(CheckRequest):
     max_cost: float = 1.0
 

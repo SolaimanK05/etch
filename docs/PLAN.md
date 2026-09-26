@@ -20,7 +20,7 @@ Differentiator: the only entry where a drawing is both the architecture rule and
 |---|---|---|---|
 | 0 | Spike: one `bob run` fix on throwaway package | 1 | **0.18** (22 s, 7 tool calls) ✅ |
 | 1 | Scaffold (backend/frontend/demo-app) + AGENTS.md | 2 | **3.33** (Plan→Agent, ~25 files + installs) ⚠️ over |
-| 2 | Backend scanner + violation engine | 4 | |
+| 2 | Backend scanner + violation engine | 4 | **0.80** (Agent only, tests pre-written by Claude) ✅ |
 | 3 | Contract compiler + CI workflow | 3 | |
 | 4 | Excalidraw canvas + sync | 5 | |
 | 5 | bob-runner SSE | 3 | |

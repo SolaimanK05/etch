@@ -59,6 +59,11 @@ export interface ContractsResponse {
   importlinter: string;
 }
 
+export interface EtchItResponse {
+  written: string[];
+  importlinter: string;
+}
+
 export interface MakeItSoRequest extends CheckRequest {
   max_cost?: number;
 }
