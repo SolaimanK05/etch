@@ -1,11 +1,9 @@
 """Email notifications."""
 
 from shop.notifications import outbox
-from shop.db.users_repo import get_user_email
 
 
-def send_order_confirmation(user_id: int, order_id: int) -> None:
-    email = get_user_email(user_id)
+def send_order_confirmation(email: str, order_id: int) -> None:
     if email:
         outbox.send(email, f"Order #{order_id} confirmed", f"Your order {order_id} is confirmed.")
 

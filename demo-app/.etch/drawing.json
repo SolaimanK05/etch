@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "root_package": "shop",
+  "layers": [
+    "api",
+    "db",
+    "notifications",
+    "services"
+  ],
+  "arrows": [
+    {
+      "source": "api",
+      "target": "services"
+    },
+    {
+      "source": "services",
+      "target": "db"
+    },
+    {
+      "source": "services",
+      "target": "notifications"
+    }
+  ],
+  "notes": []
+}

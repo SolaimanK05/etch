@@ -5,8 +5,6 @@ from shop.services.users import get_profile, register_user
 
 def signup_route(name: str, email: str) -> dict:
     user_id = register_user(name, email)
-    from shop.notifications.email import send_welcome
-    send_welcome(email, name)
     return {"status": 201, "user_id": user_id}
 
 
