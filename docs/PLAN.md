@@ -26,7 +26,7 @@ Differentiator: the only entry where a drawing is both the architecture rule and
 | 5 | bob-runner SSE | 3 | |
 | 6 | demo-app + tests + planted violations | 3 | **0.67** (Agent only; Claude removed misleading noqa tags) ✅ |
 | 7 | Bob skill + custom mode generator | 2 | |
-| – | Runtime "Make it so" rehearsals (capped) | 11 | |
+| – | Runtime "Make it so" rehearsals (capped) | 11 | run 1: **0.61** (4/4 fixed, 1:24, tests green, lint-imports 4 kept) ✅ |
 | – | Reserve | 6 | |
 
 ## Timeline (Asia/Dhaka)

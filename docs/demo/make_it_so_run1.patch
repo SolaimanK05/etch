@@ -1,0 +1,112 @@
+diff --git a/demo-app/shop/api/orders.py b/demo-app/shop/api/orders.py
+index 5875398..d79928a 100644
+--- a/demo-app/shop/api/orders.py
++++ b/demo-app/shop/api/orders.py
+@@ -1,7 +1,6 @@
+ """Orders API routes."""
+ 
+-from shop.db.orders_repo import get_order
+-from shop.services.orders import place_order
++from shop.services.orders import find_order, place_order
+ 
+ 
+ def create_order_route(user_id: int, items: list[tuple[str, float]]) -> dict:
+@@ -10,7 +9,7 @@ def create_order_route(user_id: int, items: list[tuple[str, float]]) -> dict:
+ 
+ 
+ def get_order_route(order_id: int) -> dict:
+-    order = get_order(order_id)
++    order = find_order(order_id)
+     if order is None:
+         return {"status": 404}
+     return {"status": 200, "order": order}
+diff --git a/demo-app/shop/api/users.py b/demo-app/shop/api/users.py
+index e2b37dd..0c5c6b0 100644
+--- a/demo-app/shop/api/users.py
++++ b/demo-app/shop/api/users.py
+@@ -5,8 +5,6 @@ from shop.services.users import get_profile, register_user
+ 
+ def signup_route(name: str, email: str) -> dict:
+     user_id = register_user(name, email)
+-    from shop.notifications.email import send_welcome
+-    send_welcome(email, name)
+     return {"status": 201, "user_id": user_id}
+ 
+ 
+diff --git a/demo-app/shop/db/orders_repo.py b/demo-app/shop/db/orders_repo.py
+index bd98ddc..08f6db4 100644
+--- a/demo-app/shop/db/orders_repo.py
++++ b/demo-app/shop/db/orders_repo.py
+@@ -1,12 +1,10 @@
+ """Order repository."""
+ 
+ from shop.db import store
+-from shop.services.pricing import apply_discount
+ 
+ 
+-def save_order(user_id: int, items: list[tuple[str, float]]) -> int:
++def save_order(user_id: int, items: list[tuple[str, float]], total: float) -> int:
+     oid = store.next_id(store.ORDERS)
+-    total = apply_discount(sum(price for _, price in items))
+     store.ORDERS[oid] = {"id": oid, "user_id": user_id, "items": items, "total": total}
+     return oid
+ 
+diff --git a/demo-app/shop/notifications/email.py b/demo-app/shop/notifications/email.py
+index 0f57521..29e08af 100644
+--- a/demo-app/shop/notifications/email.py
++++ b/demo-app/shop/notifications/email.py
+@@ -1,11 +1,9 @@
+ """Email notifications."""
+ 
+ from shop.notifications import outbox
+-from shop.db.users_repo import get_user_email
+ 
+ 
+-def send_order_confirmation(user_id: int, order_id: int) -> None:
+-    email = get_user_email(user_id)
++def send_order_confirmation(email: str, order_id: int) -> None:
+     if email:
+         outbox.send(email, f"Order #{order_id} confirmed", f"Your order {order_id} is confirmed.")
+ 
+diff --git a/demo-app/shop/services/orders.py b/demo-app/shop/services/orders.py
+index c62c2aa..bc92a86 100644
+--- a/demo-app/shop/services/orders.py
++++ b/demo-app/shop/services/orders.py
+@@ -1,12 +1,15 @@
+ """Order service."""
+ 
+-from shop.db import orders_repo
++from shop.db import orders_repo, users_repo
+ from shop.notifications.email import send_order_confirmation
++from shop.services.pricing import apply_discount
+ 
+ 
+ def place_order(user_id: int, items: list[tuple[str, float]]) -> dict:
+-    order_id = orders_repo.save_order(user_id, items)
+-    send_order_confirmation(user_id, order_id)
++    total = apply_discount(sum(price for _, price in items))
++    order_id = orders_repo.save_order(user_id, items, total)
++    email = users_repo.get_user_email(user_id)
++    send_order_confirmation(email, order_id)
+     return orders_repo.get_order(order_id)
+ 
+ 
+diff --git a/demo-app/shop/services/users.py b/demo-app/shop/services/users.py
+index 4283435..6776a98 100644
+--- a/demo-app/shop/services/users.py
++++ b/demo-app/shop/services/users.py
+@@ -1,10 +1,13 @@
+ """User service."""
+ 
+ from shop.db import users_repo
++from shop.notifications.email import send_welcome
+ 
+ 
+ def register_user(name: str, email: str) -> int:
+-    return users_repo.add_user(name, email)
++    user_id = users_repo.add_user(name, email)
++    send_welcome(email, name)
++    return user_id
+ 
+ 
+ def get_profile(user_id: int) -> dict | None:
