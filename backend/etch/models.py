@@ -20,6 +20,7 @@ class ImportDetail(BaseModel):
 class Layer(BaseModel):
     id: str              # direct child package name of root_package, e.g. "api"
     module: str          # e.g. "shop.api"
+    files: int = 0       # number of .py files in the layer package (recursive)
 
 
 class Dependency(BaseModel):     # real imports between two layers, aggregated
@@ -52,7 +53,7 @@ class Violation(BaseModel):      # a real Dependency with no matching Arrow
 
 class ScanRequest(BaseModel):
     repo_path: str = "demo-app"  # relative paths resolve against the repo root
-    root_package: str = "shop"
+    root_package: str | None = None  # None = auto-detect the single top-level package
 
 
 class CheckRequest(ScanRequest):

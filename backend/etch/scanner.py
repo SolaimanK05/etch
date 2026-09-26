@@ -18,9 +18,38 @@ from etch.models import ArchGraph, Dependency, ImportDetail, Layer
 
 _graph_lock = threading.Lock()
 
+_SKIP_NAMES = {"tests", "test", "docs"}
+
 
 class ScanError(Exception):
     """Repo or package can't be scanned (missing package, unparsable source)."""
+
+
+def detect_root_package(repo_path: Path) -> str:
+    """Return the single top-level Python package under *repo_path*.
+
+    Considers direct subdirectories that contain ``__init__.py``, skipping
+    ``tests``, ``test``, ``docs``, names starting with ``.`` or ``_``, and
+    names that are not valid Python identifiers.
+
+    Raises:
+        ScanError: if the number of qualifying packages is not exactly one.
+    """
+    candidates = [
+        d.name
+        for d in repo_path.iterdir()
+        if d.is_dir()
+        and (d / "__init__.py").is_file()
+        and d.name not in _SKIP_NAMES
+        and not d.name.startswith(".")
+        and not d.name.startswith("_")
+        and d.name.isidentifier()
+    ]
+    if len(candidates) == 1:
+        return candidates[0]
+    raise ScanError(
+        f"found {len(candidates)} top-level packages in {repo_path}, pass root_package"
+    )
 
 
 def scan_repo(repo_path: Path, root_package: str) -> ArchGraph:
@@ -53,8 +82,10 @@ def scan_repo(repo_path: Path, root_package: str) -> ArchGraph:
     layers: list[Layer] = []
     for child in graph.find_children(root_package):
         child_path = Path(*child.split("."))
-        if (repo_path / child_path / "__init__.py").is_file():
-            layers.append(Layer(id=child.split(".")[-1], module=child))
+        layer_dir = repo_path / child_path
+        if (layer_dir / "__init__.py").is_file():
+            file_count = len(list(layer_dir.rglob("*.py")))
+            layers.append(Layer(id=child.split(".")[-1], module=child, files=file_count))
     layers.sort(key=lambda l: l.id)
 
     # 4. Build a module -> layer mapping.

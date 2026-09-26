@@ -114,3 +114,23 @@ def test_check_request_round_trip():
     serialised = req.model_dump_json()
     restored = CheckRequest.model_validate_json(serialised)
     assert restored == req
+
+
+def test_scan_auto_detects_root_package():
+    resp = client.post("/api/scan", json={"repo_path": str(FIXREPO)})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["root_package"] == "fixpkg"
+    assert {layer["id"]: layer["files"] for layer in body["layers"]}["api"] == 3
+
+
+def test_contracts_and_etch_it_auto_detect_root_package(tmp_path):
+    resp = client.post("/api/contracts", json={"drawing": DRAWING})
+    assert resp.status_code == 200
+    assert "root_package = shop" in resp.json()["importlinter"]
+
+    repo = tmp_path / "repo"
+    shutil.copytree(FIXREPO, repo)
+    resp = client.post("/api/etch-it", json={"repo_path": str(repo), "drawing": DRAWING})
+    assert resp.status_code == 200
+    assert "root_package = fixpkg" in resp.json()["importlinter"]

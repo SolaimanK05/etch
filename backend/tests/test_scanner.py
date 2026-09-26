@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from etch.models import ImportDetail
-from etch.scanner import ScanError, scan_repo
+from etch.scanner import ScanError, detect_root_package, scan_repo
 
 FIXREPO = Path(__file__).parent / "fixtures" / "fixrepo"
 
@@ -84,3 +84,36 @@ def test_rescan_sees_edits_in_a_different_copy(tmp_path):
     graph = scan_repo(repo, "fixpkg")
     api_db = deps_by_pair(graph)[("api", "db")]
     assert [(i.file, i.line) for i in api_db.imports] == [("fixpkg/api/admin.py", 2)]
+
+
+def test_layers_count_python_files_recursively():
+    graph = scan_repo(FIXREPO, "fixpkg")
+    assert {layer.id: layer.files for layer in graph.layers} == {
+        "api": 3,            # __init__, routes, admin
+        "db": 2,             # __init__, repo
+        "notifications": 1,  # __init__
+        "services": 2,       # __init__, users
+    }
+
+
+def test_detect_root_package_finds_the_single_top_level_package():
+    assert detect_root_package(FIXREPO) == "fixpkg"
+    assert detect_root_package(Path(__file__).resolve().parents[2] / "demo-app") == "shop"
+
+
+def test_detect_root_package_ignores_tests_docs_hidden_and_non_identifiers(tmp_path):
+    for name in ("shop", "tests", "docs", ".cache", "_build", "not-a-pkg"):
+        (tmp_path / name).mkdir()
+        (tmp_path / name / "__init__.py").write_text("", encoding="utf-8")
+    (tmp_path / "plain_dir").mkdir()  # no __init__.py: not a package
+    assert detect_root_package(tmp_path) == "shop"
+
+
+def test_detect_root_package_errors_on_zero_or_many(tmp_path):
+    with pytest.raises(ScanError):
+        detect_root_package(tmp_path)
+    for name in ("alpha", "beta"):
+        (tmp_path / name).mkdir()
+        (tmp_path / name / "__init__.py").write_text("", encoding="utf-8")
+    with pytest.raises(ScanError):
+        detect_root_package(tmp_path)

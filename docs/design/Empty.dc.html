@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Etch — first run</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Nunito:wght@600;700&amp;display=swap">
+<style>
+body{margin:0;background:#FBFBFA;color:#2F3437;font-family:"Geist",ui-sans-serif,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#111111}a:hover{color:#2F3437}
+.press{transition:transform 160ms cubic-bezier(0.23,1,0.32,1),background-color 160ms ease}
+.press:active{transform:scale(0.97)}
+.field::placeholder{color:#6F6E69}
+.field:focus{outline:none;border-color:#111111;box-shadow:0 0 0 3px rgba(17,17,17,0.06)}
+@media (hover:hover) and (pointer:fine){.cta:hover{background:#2B2B2B}}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; display: flex; flex-direction: column; background: #FBFBFA; overflow: hidden">
+
+  <header style="height: 56px; flex-shrink: 0; display: flex; align-items: center; gap: 20px; padding: 0 24px; border-bottom: 1px solid #EAEAEA; background: #FFFFFF; box-sizing: border-box">
+    <div style="display: flex; flex-direction: column; gap: 0; width: 52px">
+      <span style="font-size: 22px; font-weight: 600; letter-spacing: -0.02em; color: #111111; line-height: 1">etch</span>
+      <svg width="46" height="7" viewBox="0 0 46 7" aria-hidden="true"><path d="M1 4.5 C 10 2.2, 20 6.2, 30 3.4 S 42 2.8, 45 3.8" fill="none" stroke="#111111" stroke-width="1.6" stroke-linecap="round"></path></svg>
+    </div>
+    <div style="flex-grow: 1"></div>
+    <span style="font-size: 13px; color: #6F6E69">Built with IBM Bob</span>
+  </header>
+
+  <div style="flex-grow: 1; display: flex; min-height: 0">
+    <section style="width: 700px; flex-shrink: 0; padding: 120px 0 0 112px; box-sizing: border-box; display: flex; flex-direction: column; gap: 28px">
+      <h1 style="margin: 0; font-family: 'Geist', sans-serif; font-weight: 600; font-size: 56px; line-height: 1.05; letter-spacing: -0.03em; color: #111111">Draw the architecture.<br>Bob makes the code obey.</h1>
+      <p style="margin: 0; max-width: 460px; font-size: 17px; line-height: 1.6; color: #6F6E69">Etch sketches your Python repo as boxes and arrows. Erase an arrow and every import that crosses it turns red.</p>
+
+      <form style="display: flex; flex-direction: column; gap: 8px; width: 500px">
+        <label for="repo" style="font-size: 13px; font-weight: 500; color: #111111">Repository folder</label>
+        <div style="display: flex; gap: 8px">
+          <input id="repo" class="field" type="text" placeholder="C:\Users\you\Desktop\Projects\demo-app" style="flex-grow: 1; height: 44px; padding: 0 12px; border: 1px solid #EAEAEA; border-radius: 6px; background: #FFFFFF; font-family: 'Geist Mono', monospace; font-size: 13px; color: #2F3437; box-sizing: border-box; transition: border-color 160ms ease, box-shadow 160ms ease">
+          <button type="submit" class="press cta" style="height: 44px; padding: 0 20px; border: 0; border-radius: 6px; background: #111111; color: #FFFFFF; font: 500 15px 'Geist', sans-serif; cursor: pointer">Scan</button>
+        </div>
+        <span style="font-size: 12px; color: #6F6E69">Read-only. Nothing changes until you press Make it so.</span>
+      </form>
+
+      <ol style="list-style: none; margin: 16px 0 0; padding: 0; width: 500px; display: flex; flex-direction: column; gap: 0">
+        <li style="padding: 14px 0; border-top: 1px solid #EAEAEA; display: flex; gap: 20px"><span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #6F6E69; padding-top: 2px">01</span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 500; color: #111111">Draw</span><span style="font-size: 14px; line-height: 1.5; color: #6F6E69">Keep the arrows you allow. Erase the ones you don't.</span></span></li>
+        <li style="padding: 14px 0; border-top: 1px solid #EAEAEA; display: flex; gap: 20px"><span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #6F6E69; padding-top: 2px">02</span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 500; color: #111111">Make it so</span><span style="font-size: 14px; line-height: 1.5; color: #6F6E69">IBM Bob refactors every import that breaks the drawing, then reruns your tests.</span></span></li>
+        <li style="padding: 14px 0; border-top: 1px solid #EAEAEA; border-bottom: 1px solid #EAEAEA; display: flex; gap: 20px"><span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #6F6E69; padding-top: 2px">03</span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 500; color: #111111">Etch it</span><span style="font-size: 14px; line-height: 1.5; color: #6F6E69">The drawing becomes import-linter contracts, a Bob skill and a pull-request check.</span></span></li>
+      </ol>
+    </section>
+
+    <section aria-hidden="true" style="flex-grow: 1; position: relative; border-left: 1px solid #EAEAEA; background-color: #FBFBFA; background-image: radial-gradient(rgba(17,17,17,0.08) 1px, transparent 1px); background-size: 22px 22px">
+      <svg width="740" height="844" viewBox="60 60 1000 900" style="position: absolute; inset: 0; opacity: 0.55">
+        <defs>
+          <marker id="ink0" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="11" markerHeight="11" orient="auto-start-reverse"><path d="M1 1.5 L10.5 6 L1.5 10.5" fill="none" stroke="#111111" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></marker>
+          <marker id="red0" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="11" markerHeight="11" orient="auto-start-reverse"><path d="M1 1.5 L10.5 6 L1.5 10.5" fill="none" stroke="#9F2F2D" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></marker>
+        </defs>
+        <g fill="none" stroke="#111111" stroke-width="1.7" stroke-linecap="round">
+          <path d="M109.2 138.5 Q212.9 138.0 320.7 138.1 Q318.5 183.0 320.2 231.4 Q213.8 233.2 108.1 232.0 Q107.0 184.0 109.2 138.5"></path>
+          <path d="M410.2 358.1 Q528.9 357.5 648.1 358.7 Q650.7 406.1 650.8 451.7 Q528.9 452.4 409.2 452.4 Q409.8 406.9 410.2 358.1"></path>
+          <path d="M730.4 599.8 Q831.6 603.1 931.5 602.0 Q932.1 646.4 929.9 692.7 Q828.5 693.5 728.1 692.9 Q727.1 646.2 730.4 599.8"></path>
+          <path d="M719.4 141.7 Q851.1 139.0 982.0 138.5 Q978.1 184.3 978.6 230.8 Q848.1 231.7 718.8 231.9 Q721.1 187.7 719.4 141.7"></path>
+          <path d="M252 242 Q 300 330 402 390" marker-end="url(#ink0)"></path>
+          <path d="M600 462 Q 662 540 742 594" marker-end="url(#ink0)"></path>
+          <path d="M612 352 Q 660 262 714 234" marker-end="url(#ink0)"></path>
+        </g>
+        <path d="M196 244 Q 214 660 720 650" fill="none" stroke="#9F2F2D" stroke-width="2" stroke-linecap="round" stroke-dasharray="7 7" marker-end="url(#red0)"></path>
+        <g font-family="Nunito, sans-serif" font-weight="700" fill="#111111" text-anchor="middle" font-size="22">
+          <text x="215" y="194">api</text>
+          <text x="530" y="414">services</text>
+          <text x="830" y="654">db</text>
+          <text x="850" y="194">notifications</text>
+        </g>
+      </svg>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

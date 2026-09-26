@@ -12,6 +12,7 @@ export interface ImportDetail {
 export interface Layer {
   id: string;
   module: string;
+  files: number;
 }
 
 export interface Dependency {
@@ -44,7 +45,7 @@ export interface Violation {
 
 export interface ScanRequest {
   repo_path?: string;
-  root_package?: string;
+  root_package?: string | null;
 }
 
 export interface CheckRequest extends ScanRequest {

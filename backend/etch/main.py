@@ -17,7 +17,7 @@ from etch.models import (
     MakeItSoRequest,
     ScanRequest,
 )
-from etch.scanner import ScanError, scan_repo
+from etch.scanner import ScanError, detect_root_package, scan_repo
 from etch.violations import find_violations
 
 app = FastAPI(title="Etch", version="0.1.0")
@@ -39,6 +39,11 @@ def resolve_repo(repo_path: str) -> Path:
     return p
 
 
+def root_of(req: ScanRequest, repo: Path) -> str:
+    """Return req.root_package, or auto-detect it from the repo directory."""
+    return req.root_package or detect_root_package(repo)
+
+
 @app.exception_handler(NotImplementedError)
 def not_implemented_handler(request: Request, exc: NotImplementedError) -> JSONResponse:
     return JSONResponse(status_code=501, content={"detail": str(exc)})
@@ -56,34 +61,39 @@ def health():
 
 @app.post("/api/scan")
 def scan(req: ScanRequest) -> ArchGraph:
-    return scan_repo(resolve_repo(req.repo_path), req.root_package)
+    repo = resolve_repo(req.repo_path)
+    return scan_repo(repo, root_of(req, repo))
 
 
 @app.post("/api/check")
 def check(req: CheckRequest) -> CheckResponse:
-    graph = scan_repo(resolve_repo(req.repo_path), req.root_package)
+    repo = resolve_repo(req.repo_path)
+    graph = scan_repo(repo, root_of(req, repo))
     return CheckResponse(violations=find_violations(graph, req.drawing))
 
 
 @app.post("/api/contracts")
 def contracts(req: CheckRequest) -> ContractsResponse:
-    return ContractsResponse(importlinter=compile_contracts(req.drawing, req.root_package))
+    repo = resolve_repo(req.repo_path)
+    return ContractsResponse(importlinter=compile_contracts(req.drawing, root_of(req, repo)))
 
 
 @app.post("/api/etch-it")
 def etch_it(req: CheckRequest) -> EtchItResponse:
     repo = resolve_repo(req.repo_path)
-    text = compile_contracts(req.drawing, req.root_package)
+    text = compile_contracts(req.drawing, root_of(req, repo))
     (repo / ".importlinter").write_text(text, encoding="utf-8", newline="\n")
     return EtchItResponse(written=[".importlinter"], importlinter=text)
 
 
 @app.post("/api/make-it-so")
 def make_it_so(req: MakeItSoRequest) -> StreamingResponse:
-    graph = scan_repo(resolve_repo(req.repo_path), req.root_package)
+    repo = resolve_repo(req.repo_path)
+    root = root_of(req, repo)
+    graph = scan_repo(repo, root)
     violations = find_violations(graph, req.drawing)
-    prompt = build_prompt(violations, req.drawing, req.root_package)
-    event_iter = run_bob(prompt, resolve_repo(req.repo_path), req.max_cost)
+    prompt = build_prompt(violations, req.drawing, root)
+    event_iter = run_bob(prompt, repo, req.max_cost)
 
     async def stream():
         async for event in event_iter:

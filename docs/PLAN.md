@@ -24,7 +24,7 @@ Differentiator: the only entry where a drawing is both the architecture rule and
 | 3 | Contract compiler + CI workflow | 3 | **0.70** (Agent only, tests pre-written) ✅ |
 | 4 | Excalidraw canvas + sync | 5 | |
 | 5 | bob-runner SSE | 3 | |
-| 6 | demo-app + tests + planted violations | 3 | |
+| 6 | demo-app + tests + planted violations | 3 | **0.67** (Agent only; Claude removed misleading noqa tags) ✅ |
 | 7 | Bob skill + custom mode generator | 2 | |
 | – | Runtime "Make it so" rehearsals (capped) | 11 | |
 | – | Reserve | 6 | |
