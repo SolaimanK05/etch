@@ -17,8 +17,9 @@ interface RowsProps {
  */
 export function Rows({ state, onHover }: RowsProps) {
   const { rows, rowsEpoch, hover, phase } = state;
+  const boxRows = newBoxRows(state);
 
-  if (rows.length === 0) return null;
+  if (rows.length === 0 && boxRows.length === 0) return null;
 
   return (
     <ul style={{
@@ -30,6 +31,7 @@ export function Rows({ state, onHover }: RowsProps) {
       gap: 0,
       overflowY: "auto",
     }}>
+      {boxRows.map((b) => <BoxRow key={`box:${b.id}`} row={b} />)}
       {rows.map((row: Row, i: number) => {
         const st = row.status;
         const ek = edgeKey(row.source, row.target);
@@ -55,7 +57,8 @@ export function Rows({ state, onHover }: RowsProps) {
         };
 
         const pathColor = isFixed ? "var(--muted)" : "var(--ink)";
-        const codeOpacity = isFixed ? 0.5 : 1;
+        // de-emphasise fixed code by colour, not opacity, so it stays readable (7:1)
+        const codeColor = isFixed ? "var(--muted)" : "var(--body)";
         const strikeScaleX = isFixed ? 1 : 0;
 
         // Touch: toggle on click, hover on mouse
@@ -149,7 +152,7 @@ export function Rows({ state, onHover }: RowsProps) {
                 display: "flex",
                 minWidth: 0,
                 fontFamily: "var(--font-mono)",
-                fontSize: 13,
+                fontSize: 14,
                 fontWeight: 500,
                 color: pathColor,
                 transition: "color 180ms ease",
@@ -182,7 +185,7 @@ export function Rows({ state, onHover }: RowsProps) {
                   borderRadius: "var(--r-pill)",
                   background: "var(--violation-bg)",
                   color: "var(--violation)",
-                  fontSize: 11, fontWeight: 500,
+                  fontSize: 12, fontWeight: 500,
                   whiteSpace: "nowrap",
                   opacity: iconOpacity.open,
                 }}>
@@ -192,19 +195,19 @@ export function Rows({ state, onHover }: RowsProps) {
                 {/* queued */}
                 <span className="layer" style={{
                   position: "absolute", right: 0, top: 2,
-                  fontSize: 12, color: "var(--muted)",
+                  fontSize: 13, color: "var(--muted)",
                   opacity: iconOpacity.queued,
                 }}>queued</span>
                 {/* fixing */}
                 <span className="layer" style={{
                   position: "absolute", right: 0, top: 2,
-                  fontSize: 12, color: "var(--working)",
+                  fontSize: 13, color: "var(--working)",
                   opacity: iconOpacity.fixing,
                 }}>fixing</span>
                 {/* fixed */}
                 <span className="layer" style={{
                   position: "absolute", right: 0, top: 2,
-                  fontSize: 12, color: "var(--obeys)",
+                  fontSize: 13, color: "var(--obeys)",
                   opacity: iconOpacity.fixed,
                 }}>fixed</span>
               </span>
@@ -217,13 +220,12 @@ export function Rows({ state, onHover }: RowsProps) {
               borderRadius: "var(--r-code)",
               background: "var(--code-bg)",
               fontFamily: "var(--font-mono)",
-              fontSize: 12,
-              color: "var(--body)",
+              fontSize: 13,
+              color: codeColor,
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis",
-              opacity: codeOpacity,
-              transition: "opacity 180ms ease",
+              transition: "color 180ms ease",
             }}>
               {row.code}
             </code>
@@ -231,5 +233,79 @@ export function Rows({ state, onHover }: RowsProps) {
         );
       })}
     </ul>
+  );
+}
+
+// ---------- New-box rows (DESIGN.md §12): drawn boxes Bob builds into packages ----------
+
+interface BoxRowData {
+  id: string;
+  intent: string;
+  status: "new" | "building" | "created";
+  detail: string | null; // "shop/pricing/ · 2 files" once built
+}
+
+function newBoxRows(state: State): BoxRowData[] {
+  const root = state.graph?.root_package ?? "";
+  const built = state.builtBoxes.map((b) => {
+    const files = state.graph?.layers.find((l) => l.id === b.id)?.files ?? 0;
+    return { id: b.id, intent: b.intent, status: "created" as const, detail: `${root}/${b.id}/ · ${files} files` };
+  });
+  const pending = state.drawing.new_boxes
+    .filter((b) => !state.builtBoxes.some((x) => x.id === b.id))
+    .map((b) => ({
+      id: b.id,
+      intent: b.intent,
+      status: state.phase === "running" ? ("building" as const) : ("new" as const),
+      detail: null,
+    }));
+  return [...built, ...pending];
+}
+
+const BOX_LABEL = {
+  new: { text: "new package", color: "var(--muted)" },
+  building: { text: "building…", color: "var(--working)" },
+  created: { text: "created", color: "var(--obeys)" },
+};
+
+function BoxRow({ row }: { row: BoxRowData }) {
+  const label = BOX_LABEL[row.status];
+  const created = row.status === "created";
+  return (
+    <li style={{ padding: "12px 16px", borderTop: "1px solid var(--rule)", display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ width: 18, height: 18, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          {created ? (
+            <CheckIcon />
+          ) : (
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"
+              className={row.status === "building" ? "pulse" : undefined}
+              style={{ stroke: row.status === "building" ? "var(--working)" : "var(--muted)" }}
+              strokeWidth="2" strokeDasharray="3.5 3">
+              <rect x="3" y="5" width="18" height="14" rx="3" />
+            </svg>
+          )}
+        </span>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 14, fontWeight: 500, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {row.id}
+        </span>
+        <span style={{ flexGrow: 1 }} />
+        <span style={{ fontSize: 13, color: label.color, whiteSpace: "nowrap", transition: "color 200ms ease" }}>{label.text}</span>
+      </div>
+      <code style={{
+        display: "block",
+        padding: "6px 8px",
+        borderRadius: "var(--r-code)",
+        background: "var(--code-bg)",
+        fontFamily: created ? "var(--font-mono)" : "var(--font-ui)",
+        fontSize: created ? 13 : 14,
+        color: created ? "var(--muted)" : row.intent ? "var(--body)" : "var(--subtle)",
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+      }}>
+        {created ? row.detail : row.intent || "no description"}
+      </code>
+    </li>
   );
 }

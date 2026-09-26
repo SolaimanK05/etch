@@ -5,8 +5,9 @@
   --rule: #EAEAEA;
   --ink: #111111;
   --body: #2F3437;
-  --muted: #6F6E69;
-  --faint: #B5B4AF;
+  --muted: #55544F;   /* secondary text, 7.3:1 on paper */
+  --subtle: #6B6A65;  /* hints, placeholders, separators in text, 5.2:1 */
+  --faint: #B5B4AF;   /* lines, strike-throughs, disabled borders only; never text */
   --code-bg: #F7F6F3;
   --hover: #F2F1EE;
   --dot: rgba(17, 17, 17, 0.08);
@@ -17,7 +18,7 @@
   --obeys-bg: #EDF3EC;
   --obeys: #346538;
   --working-bg: #FBF3DB;
-  --working: #956400;
+  --working: #7A5200;
   --etched-bg: #E1F3FE;
   --etched: #1F6C9F;
   --row-hover-violation: #FDF7F7;
@@ -118,7 +119,7 @@ a:hover {
   transform: scale(0.97);
 }
 
-.field::placeholder { color: var(--muted); }
+.field::placeholder { color: var(--subtle); }
 .field:focus {
   outline: none;
   border-color: var(--ink);
@@ -150,6 +151,22 @@ a:hover {
 .excalidraw .Island {
   border: 1px solid var(--rule) !important;
   border-radius: 8px !important;
+}
+
+/* v2 (DESIGN.md §6): Excalidraw is only the drawing engine. Hide all of its own UI;
+   Etch's toolbar, view controls and legend replace it. 0.18 has no props for these. */
+.excalidraw .App-menu_top,
+.excalidraw .layer-ui__wrapper__footer,
+.excalidraw .layer-ui__wrapper__top-right,
+.excalidraw .HintViewer,
+.excalidraw .welcome-screen-center,
+.excalidraw .welcome-screen-decor,
+.excalidraw .App-bottom-bar,
+.excalidraw .mobile-misc-tools-container,
+.excalidraw .scroll-back-to-content,
+.excalidraw .default-sidebar,
+.excalidraw .context-menu {
+  display: none !important;
 }
 
 /* ── Responsive ── */
@@ -262,48 +279,41 @@ a:hover {
   }
 }
 
-/* Canvas legend: bottom-centre, clear of Excalidraw's bottom-left zoom/undo and bottom-right help */
+/* Canvas legend: bottom-left (DESIGN.md §6 v2); Etch's view controls own the bottom-right */
 .canvas-legend {
   position: absolute;
-  left: calc(50% + 28px); /* nudged right: Excalidraw's undo/redo sit bottom-left */
-  bottom: 20px;
-  transform: translateX(-50%);
+  left: 16px;
+  bottom: 16px;
   z-index: 4;
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 8px 12px;
+  padding: 9px 13px;
   background: var(--surface);
   border: 1px solid var(--rule);
   border-radius: var(--r-panel);
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
   white-space: nowrap;
-  pointer-events: none;
+  pointer-events: auto;
 }
-.legend-hint { color: var(--faint); }
-.legend-hint-touch { display: none; }
-@media (hover: none) {
-  .legend-hint-hover { display: none; }
-  .legend-hint-touch { display: inline; }
-}
-/* The hover hint only fits beside Excalidraw's controls on wide canvases */
-@media (max-width: 1439px) {
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.legend-hint { color: var(--subtle); }
+/* Keep clear of the view controls on narrower canvases */
+@media (max-width: 1279px) {
   .legend-hint { display: none; }
 }
 @media (max-width: 767px) {
-  /* Excalidraw's mobile toolbar owns the bottom edge: pin the legend top-left instead */
+  /* Etch's toolbar owns the bottom edge on phones: pin the legend top-left instead */
   .canvas-legend {
-    top: 64px;
+    top: 12px;
     bottom: auto;
     left: 12px;
-    transform: none;
     gap: 10px;
     padding: 6px 10px;
-    font-size: 11px;
+    font-size: 12px;
   }
 }
-
 /* Touch tap targets */
 @media (hover: none) {
   .press {
@@ -358,10 +368,43 @@ a:hover {
   .kbd-hint { display: none !important; }
 }
 
-/* Legend "note" item: other shapes are annotations, not rules */
-.legend-note { display: flex; align-items: center; gap: 6px; }
-.legend-note-short { display: none; }
-@media (max-width: 767px) {
-  .legend-note-long { display: none; }
-  .legend-note-short { display: inline; }
+/* Landing drawing: the violation arrow flows api -> db, a dot carries the import, the pill breathes */
+.landing-flow { stroke-dasharray: 7 7; animation: landing-march 0.9s linear infinite; }
+@keyframes landing-march { to { stroke-dashoffset: -14; } }
+.landing-packet {
+  offset-path: path("M90 152 Q 110 520 490 500");
+  offset-rotate: 0deg;
+  animation: landing-travel 2.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
+@keyframes landing-travel {
+  0% { offset-distance: 0%; opacity: 0; }
+  12% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { offset-distance: 100%; opacity: 0; }
+}
+.landing-pill { animation: landing-breathe 2.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes landing-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+@media (prefers-reduced-motion: reduce) {
+  .landing-flow, .landing-pill { animation: none; }
+  .landing-packet { display: none; }
+}
+
+/* Bobcoin highlight: amber chip in the rail, amber pill in the top bar */
+.coin {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px 0 7px;
+  border-radius: var(--r-pill);
+  background: var(--working-bg);
+  color: var(--working);
+  font: 500 14px var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.coin b { font-weight: 600; color: #5C3D00; }
+.coin-pop { animation: coin-pop 420ms var(--ease-out) both; }
+@keyframes coin-pop { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .coin-pop { animation: none; } }

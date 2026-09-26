@@ -82,7 +82,7 @@ export function Toast({ toast }: ToastProps) {
         border: "1px solid var(--rule)",
         borderRadius: "var(--r-panel)",
         boxShadow: "var(--shadow-toast)",
-        fontSize: 13,
+        fontSize: 14,
         color: "var(--body)",
         whiteSpace: "nowrap",
         pointerEvents: "none",
@@ -106,7 +106,7 @@ export function Toast({ toast }: ToastProps) {
         <CheckIcon />
       </span>
       <span>
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--ink)" }}>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--ink)" }}>
           {displayToast?.path}
         </span>
         {" "}

@@ -4,7 +4,8 @@ Stream protocol (Server-Sent Events, one JSON object per `data:` line):
   {"kind": "violations", "violations": [...]}   at start, then whenever a rescan changes them
   {"kind": "bob", "event": {"type": ..., "data": {...}}}   every Bob stream-json event, verbatim
   {"kind": "tests", "ok": bool, "summary": "10 passed"}    after Bob finishes, Etch runs pytest itself
-  {"kind": "done", "coins": 0.12, "duration_ms": 1234, "violations_left": 3}
+  {"kind": "layers", "layers": [...]}           after a rescan whose set of top-level packages changed (task 8a)
+  {"kind": "done", "coins": 0.12, "duration_ms": 1234, "violations_left": 3, "boxes_missing": []}
   {"kind": "error", "message": "..."}
 """
 import json
@@ -77,7 +78,7 @@ def test_make_it_so_streams_bob_rescans_tests_and_cost(demo_copy):
     assert tests["ok"] is True
     assert tests["summary"].startswith("10 passed")
 
-    assert events[-1] == {"kind": "done", "coins": 0.12, "duration_ms": 1234, "violations_left": 3}
+    assert events[-1] == {"kind": "done", "coins": 0.12, "duration_ms": 1234, "violations_left": 3, "boxes_missing": []}
 
     prompt = (demo_copy / ".fake_bob_prompt.txt").read_text(encoding="utf-8")
     assert "shop/api/orders.py:3" in prompt and "shop/notifications/email.py:4" in prompt

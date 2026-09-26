@@ -1,6 +1,8 @@
 """Violations engine — implemented in task 2.
 
 Compares a real ArchGraph against a user Drawing to find forbidden imports.
+New boxes (drawing.new_boxes) count as drawn: imports that target or originate
+from a new box's id are subject to the same rules as real layers.
 """
 from __future__ import annotations
 
@@ -13,8 +15,9 @@ def find_violations(graph: ArchGraph, drawing: Drawing) -> list[Violation]:
     A Dependency from layer A to layer B is a violation when both A and B are
     drawn boxes and the drawing contains no Arrow(source=A, target=B).
     Dependencies touching an undrawn box are ignored.
+    New boxes count as drawn: drawn = set(drawing.layers) | {b.id for b in drawing.new_boxes}.
     """
-    drawn = set(drawing.layers)
+    drawn = set(drawing.layers) | {b.id for b in drawing.new_boxes}
     allowed = {(a.source, a.target) for a in drawing.arrows}
 
     violations: list[Violation] = []

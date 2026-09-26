@@ -73,12 +73,12 @@ export function LogPanel({ state, simulated = false }: LogPanelProps) {
             gap: 8,
             padding: "0 12px",
           }}>
-            <span style={{ fontSize: 13, fontWeight: 500, color: "var(--ink)" }}>
+            <span style={{ fontSize: 14, fontWeight: 500, color: "var(--ink)" }}>
               Live from IBM Bob
             </span>
             <span style={{
               fontFamily: "var(--font-mono)",
-              fontSize: 11,
+              fontSize: 12,
               color: "var(--muted)",
             }}>
               {logMeta}
@@ -100,7 +100,7 @@ export function LogPanel({ state, simulated = false }: LogPanelProps) {
             justifyContent: "flex-end",
             gap: 6,
             fontFamily: "var(--font-mono)",
-            fontSize: 12,
+            fontSize: 13,
             lineHeight: 1.45,
             fontVariantNumeric: "tabular-nums",
           }}>
@@ -145,7 +145,7 @@ export function LogPanel({ state, simulated = false }: LogPanelProps) {
           gap: 0,
         }}>
           <span className="rowIn" style={{
-            fontSize: 13,
+            fontSize: 14,
             fontWeight: 500,
             color: "var(--ink)",
             paddingBottom: 8,
@@ -171,19 +171,19 @@ export function LogPanel({ state, simulated = false }: LogPanelProps) {
               >
                 <span style={{
                   fontFamily: "var(--font-mono)",
-                  fontSize: 12,
+                  fontSize: 13,
                   color: "var(--obeys)",
                   width: 12,
                 }}>+</span>
                 <span style={{
                   fontFamily: "var(--font-mono)",
-                  fontSize: 13,
+                  fontSize: 14,
                   color: "var(--ink)",
                 }}>
                   {filePath}
                 </span>
                 <span style={{ flexGrow: 1 }} />
-                <span style={{ fontSize: 12, color: "var(--muted)" }}>
+                <span style={{ fontSize: 13, color: "var(--muted)" }}>
                   {note}
                 </span>
               </div>

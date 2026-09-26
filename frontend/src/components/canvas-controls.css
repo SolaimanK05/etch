@@ -1,0 +1,178 @@
+/* CanvasControls — toolbar + view controls */
+
+/* ── Positioning ─────────────────────────────────────────────────── */
+.cc-toolbar {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+}
+
+.cc-view {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  z-index: 5;
+  display: flex;
+  gap: 8px;
+}
+
+/* ── Panel chrome ────────────────────────────────────────────────── */
+.cc-toolbar,
+.cc-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-panel);
+  box-shadow: var(--shadow-float);
+}
+
+.cc-group {
+  padding: 3px;
+}
+
+/* ── Separator ───────────────────────────────────────────────────── */
+.cc-sep {
+  width: 1px;
+  height: 20px;
+  background: var(--rule);
+  margin: 0 4px;
+}
+
+/* ── Tool buttons ────────────────────────────────────────────────── */
+.cc-tool {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: var(--r-control);
+  background: transparent;
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: transform 160ms var(--ease-out);
+}
+
+.cc-tool svg {
+  width: 19px;
+  height: 19px;
+}
+
+.cc-tool[aria-pressed="true"] {
+  background: var(--hover);
+  color: var(--ink);
+}
+
+.cc-tool:active {
+  transform: scale(0.97);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cc-tool:hover {
+    background: var(--hover);
+    color: var(--ink);
+  }
+
+  .cc-tool:hover .cc-tip {
+    opacity: 1;
+  }
+}
+
+/* ── Key letter ──────────────────────────────────────────────────── */
+.cc-key {
+  position: absolute;
+  right: 3px;
+  bottom: 1px;
+  font: 400 9px var(--font-mono);
+  color: var(--subtle);
+  pointer-events: none;
+}
+
+/* ── Tooltip ─────────────────────────────────────────────────────── */
+.cc-tip {
+  position: absolute;
+  top: 46px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  padding: 6px 9px;
+  border-radius: var(--r-control);
+  background: var(--ink);
+  color: #fff;
+  font: 500 13px var(--font-ui);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+.cc-tip kbd {
+  font: 400 12px var(--font-mono);
+  color: #CFCDC7;
+  margin-left: 6px;
+}
+
+/* ── View buttons ────────────────────────────────────────────────── */
+.cc-btn {
+  height: 30px;
+  min-width: 30px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: var(--r-control);
+  background: transparent;
+  color: var(--body);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font: 500 13px var(--font-ui);
+  cursor: pointer;
+  transition: transform 160ms var(--ease-out);
+}
+
+.cc-btn:active {
+  transform: scale(0.97);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cc-btn:hover {
+    background: var(--hover);
+  }
+}
+
+/* ── Zoom label ──────────────────────────────────────────────────── */
+.cc-zoom {
+  min-width: 52px;
+  font: 400 13px var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Phones ──────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  .cc-toolbar {
+    top: auto;
+    bottom: 12px;
+  }
+
+  .cc-view {
+    bottom: 64px;
+    right: 12px;
+  }
+
+  .cc-tip,
+  .cc-key {
+    display: none;
+  }
+}
+
+/* ── Reduced motion ──────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .cc-tool,
+  .cc-btn {
+    transition: none;
+  }
+}

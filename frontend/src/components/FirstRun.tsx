@@ -63,8 +63,8 @@ export function FirstRun({ state, onScan }: FirstRunProps) {
 
         <p style={{
           margin: 0,
-          maxWidth: 460,
-          fontSize: 17,
+          maxWidth: 490,
+          fontSize: 18,
           lineHeight: 1.6,
           color: "var(--muted)",
         }}>
@@ -83,7 +83,7 @@ export function FirstRun({ state, onScan }: FirstRunProps) {
         >
           <label
             htmlFor="repo"
-            style={{ fontSize: 13, fontWeight: 500, color: "var(--ink)" }}
+            style={{ fontSize: 14, fontWeight: 500, color: "var(--ink)" }}
           >
             Repository folder
           </label>
@@ -103,7 +103,7 @@ export function FirstRun({ state, onScan }: FirstRunProps) {
                 borderRadius: "var(--r-control)",
                 background: "var(--surface)",
                 fontFamily: "var(--font-mono)",
-                fontSize: 13,
+                fontSize: 14,
                 color: "var(--body)",
                 boxSizing: "border-box",
                 transition: "border-color 160ms ease, box-shadow 160ms ease",
@@ -120,7 +120,7 @@ export function FirstRun({ state, onScan }: FirstRunProps) {
                 borderRadius: "var(--r-control)",
                 background: "var(--ink)",
                 color: "#FFFFFF",
-                font: "500 15px var(--font-ui)",
+                font: "500 16px var(--font-ui)",
                 cursor: scanning ? "default" : "pointer",
                 minWidth: 80,
                 position: "relative",
@@ -160,12 +160,12 @@ export function FirstRun({ state, onScan }: FirstRunProps) {
             </button>
           </div>
 
-          <span style={{ fontSize: 12, color: "var(--muted)" }}>
+          <span style={{ fontSize: 13, color: "var(--muted)" }}>
             Read-only. Nothing changes until you press Make it so.
           </span>
 
           {error && (
-            <span style={{ fontSize: 12, color: "var(--violation)" }}>{error}</span>
+            <span style={{ fontSize: 13, color: "var(--violation)" }}>{error}</span>
           )}
         </form>
 
@@ -190,13 +190,13 @@ export function FirstRun({ state, onScan }: FirstRunProps) {
           }}>
             <span style={{
               fontFamily: "var(--font-mono)",
-              fontSize: 12,
+              fontSize: 13,
               color: "var(--muted)",
               paddingTop: 2,
             }}>01</span>
             <span style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              <span style={{ fontSize: 15, fontWeight: 500, color: "var(--ink)" }}>Draw</span>
-              <span style={{ fontSize: 14, lineHeight: 1.5, color: "var(--muted)" }}>
+              <span style={{ fontSize: 16, fontWeight: 500, color: "var(--ink)" }}>Draw</span>
+              <span style={{ fontSize: 15, lineHeight: 1.5, color: "var(--muted)" }}>
                 Keep the arrows you allow. Erase the ones you don't.
               </span>
             </span>
@@ -209,13 +209,13 @@ export function FirstRun({ state, onScan }: FirstRunProps) {
           }}>
             <span style={{
               fontFamily: "var(--font-mono)",
-              fontSize: 12,
+              fontSize: 13,
               color: "var(--muted)",
               paddingTop: 2,
             }}>02</span>
             <span style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              <span style={{ fontSize: 15, fontWeight: 500, color: "var(--ink)" }}>Make it so</span>
-              <span style={{ fontSize: 14, lineHeight: 1.5, color: "var(--muted)" }}>
+              <span style={{ fontSize: 16, fontWeight: 500, color: "var(--ink)" }}>Make it so</span>
+              <span style={{ fontSize: 15, lineHeight: 1.5, color: "var(--muted)" }}>
                 IBM Bob refactors every import that breaks the drawing, then reruns your tests.
               </span>
             </span>
@@ -229,13 +229,13 @@ export function FirstRun({ state, onScan }: FirstRunProps) {
           }}>
             <span style={{
               fontFamily: "var(--font-mono)",
-              fontSize: 12,
+              fontSize: 13,
               color: "var(--muted)",
               paddingTop: 2,
             }}>03</span>
             <span style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              <span style={{ fontSize: 15, fontWeight: 500, color: "var(--ink)" }}>Etch it</span>
-              <span style={{ fontSize: 14, lineHeight: 1.5, color: "var(--muted)" }}>
+              <span style={{ fontSize: 16, fontWeight: 500, color: "var(--ink)" }}>Etch it</span>
+              <span style={{ fontSize: 15, lineHeight: 1.5, color: "var(--muted)" }}>
                 The drawing becomes import-linter contracts, a Bob skill and a pull-request check.
               </span>
             </span>
@@ -256,44 +256,69 @@ export function FirstRun({ state, onScan }: FirstRunProps) {
           backgroundColor: "var(--paper)",
         }}
       >
-        {/* Scales to the panel and stays centred at any width (the mock was a fixed 740x844 at 1440px) */}
+        {/* Clean boxes at full strength; the violation arrow is animated (theme.css .landing-*).
+            pricing is the package Bob created in the "draw a box" flow. Scales to the panel. */}
         <svg
-          width="100%"
-          height="100%"
-          viewBox="60 60 1000 900"
+          viewBox="0 20 720 740"
           preserveAspectRatio="xMidYMid meet"
-          style={{ position: "absolute", inset: 0, opacity: 0.55 }}
+          style={{ position: "absolute", inset: 32, width: "calc(100% - 64px)", height: "calc(100% - 64px)" }}
         >
           <defs>
             <marker id="ink0" viewBox="0 0 12 12" refX="10" refY="6"
-              markerWidth="11" markerHeight="11" orient="auto-start-reverse">
-              <path d="M1 1.5 L10.5 6 L1.5 10.5" fill="none" stroke="#111111"
-                strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              markerWidth="10" markerHeight="10" orient="auto-start-reverse">
+              <path d="M1.5 1.5 L10.5 6 L1.5 10.5" fill="none" stroke="#111111"
+                strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
             </marker>
             <marker id="red0" viewBox="0 0 12 12" refX="10" refY="6"
-              markerWidth="11" markerHeight="11" orient="auto-start-reverse">
-              <path d="M1 1.5 L10.5 6 L1.5 10.5" fill="none" stroke="#9F2F2D"
+              markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+              <path d="M1.5 1.5 L10.5 6 L1.5 10.5" fill="none" stroke="#9F2F2D"
                 strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
             </marker>
           </defs>
-          <g fill="none" stroke="#111111" strokeWidth="1.7" strokeLinecap="round">
-            <path d="M109.2 138.5 Q212.9 138.0 320.7 138.1 Q318.5 183.0 320.2 231.4 Q213.8 233.2 108.1 232.0 Q107.0 184.0 109.2 138.5" />
-            <path d="M410.2 358.1 Q528.9 357.5 648.1 358.7 Q650.7 406.1 650.8 451.7 Q528.9 452.4 409.2 452.4 Q409.8 406.9 410.2 358.1" />
-            <path d="M730.4 599.8 Q831.6 603.1 931.5 602.0 Q932.1 646.4 929.9 692.7 Q828.5 693.5 728.1 692.9 Q727.1 646.2 730.4 599.8" />
-            <path d="M719.4 141.7 Q851.1 139.0 982.0 138.5 Q978.1 184.3 978.6 230.8 Q848.1 231.7 718.8 231.9 Q721.1 187.7 719.4 141.7" />
-            <path d="M252 242 Q 300 330 402 390" markerEnd="url(#ink0)" />
-            <path d="M600 462 Q 662 540 742 594" markerEnd="url(#ink0)" />
-            <path d="M612 352 Q 660 262 714 234" markerEnd="url(#ink0)" />
+          {/* allowed arrows */}
+          <g fill="none" stroke="#111111" strokeWidth="1.6" strokeLinecap="round">
+            <path d="M150 152 Q 170 236 250 274" markerEnd="url(#ink0)" />
+            <path d="M430 244 Q 470 170 492 156" markerEnd="url(#ink0)" />
+            <path d="M420 342 Q 470 420 492 450" markerEnd="url(#ink0)" />
+            <path d="M360 342 L 360 630" markerEnd="url(#ink0)" />
+            <path d="M560 542 Q 530 610 470 650" markerEnd="url(#ink0)" />
           </g>
-          <path d="M196 244 Q 214 660 720 650" fill="none" stroke="#9F2F2D"
-            strokeWidth="2" strokeLinecap="round" strokeDasharray="7 7"
-            markerEnd="url(#red0)" />
-          <g fontFamily="Nunito, sans-serif" fontWeight="700" fill="#111111"
-            textAnchor="middle" fontSize="22">
-            <text x="215" y="194">api</text>
-            <text x="530" y="414">services</text>
-            <text x="830" y="654">db</text>
-            <text x="850" y="194">notifications</text>
+          {/* boxes */}
+          <g fill="#FFFFFF" stroke="#111111" strokeWidth="1.6">
+            <rect x="20" y="60" width="180" height="84" rx="10" />
+            <rect x="500" y="60" width="200" height="84" rx="10" />
+            <rect x="260" y="250" width="200" height="84" rx="10" />
+            <rect x="500" y="450" width="180" height="84" rx="10" />
+            <rect x="260" y="640" width="200" height="84" rx="10" />
+          </g>
+          <g fontFamily="Nunito, sans-serif" fontWeight="700" fontSize="26" fill="#111111" textAnchor="middle">
+            <text x="110" y="102">api</text>
+            <text x="600" y="102">notifications</text>
+            <text x="360" y="292">services</text>
+            <text x="590" y="492">db</text>
+            <text x="360" y="682">pricing</text>
+          </g>
+          <g fontFamily="Geist Mono, monospace" fontSize="14" fill="#55544F" textAnchor="middle">
+            <text x="110" y="126">shop.api</text>
+            <text x="600" y="126">shop.notifications</text>
+            <text x="360" y="316">shop.services</text>
+            <text x="590" y="516">shop.db</text>
+            <text x="360" y="706">shop.pricing</text>
+          </g>
+          {/* created tag on pricing */}
+          <g transform="translate(236 627)">
+            <rect width="92" height="26" rx="13" fill="#EDF3EC" />
+            <text x="46" y="17.5" fontFamily="Geist, sans-serif" fontSize="13" fontWeight="500"
+              letterSpacing="0.7" fill="#346538" textAnchor="middle">CREATED</text>
+          </g>
+          {/* animated violation api → db */}
+          <path className="landing-flow" d="M90 152 Q 110 520 490 500" fill="none" stroke="#9F2F2D"
+            strokeWidth="2.2" strokeLinecap="round" markerEnd="url(#red0)" />
+          <circle className="landing-packet" r="5.5" fill="#9F2F2D" />
+          <g className="landing-pill">
+            <rect x="118" y="368" width="92" height="28" rx="14" fill="#FDEBEC" />
+            <text x="164" y="387" fontFamily="Geist, sans-serif" fontSize="14" fontWeight="500"
+              fill="#9F2F2D" textAnchor="middle">1 import</text>
           </g>
         </svg>
       </section>

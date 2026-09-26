@@ -26,6 +26,8 @@ Differentiator: the only entry where a drawing is both the architecture rule and
 | 5 | bob-runner SSE | 3 | **3.79** (runner + stream + stop/undo + SSE client) ⚠️ slightly over |
 | 6 | demo-app + tests + planted violations | 3 | **0.67** (Agent only; Claude removed misleading noqa tags) ✅ |
 | 7 | Bob skill + custom mode generator | 2 | **3.10** (skill + mode + PR check + sketch/notes + Open PR) ⚠️ over |
+| 8a | Draw a box = new package (detection, prompt, live adoption, backend) | 2 | **6.44** (~23 files read, tests pre-written) ⚠️ over |
+| 8b | Etch canvas controls (toolbar + undo/zoom/fit) | 1 | **0.58** (2 new files, props only) ✅ |
 | – | Runtime "Make it so" rehearsals (capped) | 11 | run 1: **0.61** (4/4 fixed, 1:24, tests green, lint-imports 4 kept) ✅ |
 | – | Reserve | 6 | |
 

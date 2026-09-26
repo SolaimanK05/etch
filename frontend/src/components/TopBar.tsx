@@ -1,5 +1,7 @@
 import type { State } from "../lib/state";
 import { BranchIcon, RefreshIcon } from "./Icons";
+import { CoinIcon } from "./Coin";
+import { CountUp } from "./CountUp";
 
 interface TopBarProps {
   state: State;
@@ -15,6 +17,7 @@ export function TopBar({ state, onRescan, firstRun = false }: TopBarProps) {
   const isWorking = phase === "running";
   const isEtched = phase === "etched";
   const pillAOpacity = (isWorking || isEtched) ? 1 : 0;
+  const showCoins = state.coins !== null && (phase === "done" || phase === "etched");
 
   // Count pill
   const openRows = state.rows.filter((r) => r.status !== "fixed").length;
@@ -62,16 +65,16 @@ export function TopBar({ state, onRescan, firstRun = false }: TopBarProps) {
             display: "flex",
             alignItems: "center",
             gap: 8,
-            fontSize: 14,
+            fontSize: 15,
           }}>
             <span style={{ color: "var(--ink)", fontWeight: 500 }}>{repoBasename}</span>
-            <span style={{ color: "var(--faint)" }}>/</span>
+            <span style={{ color: "var(--subtle)" }}>/</span>
             <span style={{
               display: "flex",
               alignItems: "center",
               gap: 6,
               fontFamily: "var(--font-mono)",
-              fontSize: 13,
+              fontSize: 14,
               color: "var(--muted)",
             }}>
               <BranchIcon />
@@ -84,14 +87,14 @@ export function TopBar({ state, onRescan, firstRun = false }: TopBarProps) {
       <div style={{ flexGrow: 1 }} />
 
       {firstRun ? (
-        <span style={{ fontSize: 13, color: "var(--muted)" }}>Built with IBM Bob</span>
+        <span style={{ fontSize: 14, color: "var(--muted)" }}>Built with IBM Bob</span>
       ) : (
         <>
           {/* Activity pill — motion #13 */}
           <div className="topbar-activity-pill" style={{
             position: "relative",
-            width: 128,
-            height: 24,
+            width: 144,
+            height: 26,
             opacity: pillAOpacity,
             transition: "opacity 200ms ease",
             flexShrink: 0,
@@ -107,7 +110,7 @@ export function TopBar({ state, onRescan, firstRun = false }: TopBarProps) {
               borderRadius: "var(--r-pill)",
               background: "var(--working-bg)",
               color: "var(--working)",
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: 500,
               letterSpacing: "0.05em",
               textTransform: "uppercase",
@@ -134,7 +137,7 @@ export function TopBar({ state, onRescan, firstRun = false }: TopBarProps) {
               borderRadius: "var(--r-pill)",
               background: "var(--etched-bg)",
               color: "var(--etched)",
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: 500,
               letterSpacing: "0.05em",
               textTransform: "uppercase",
@@ -145,17 +148,39 @@ export function TopBar({ state, onRescan, firstRun = false }: TopBarProps) {
             </span>
           </div>
 
+          {/* Bobcoin pill: the real cost of the last Make it so, kept on screen through Etch it */}
+          {showCoins && (
+            <span className="coin-pop" style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              height: 26,
+              padding: "0 11px 0 8px",
+              borderRadius: "var(--r-pill)",
+              background: "var(--working-bg)",
+              color: "var(--working)",
+              fontSize: 12,
+              fontWeight: 500,
+              letterSpacing: "0.05em",
+              textTransform: "uppercase",
+              fontVariantNumeric: "tabular-nums",
+              flexShrink: 0,
+            }}>
+              <CoinIcon size={13} />
+              <CountUp target={state.coins} /> Bobcoin
+            </span>
+          )}
           {/* Count pill — motion #12 */}
           <span style={{
             display: "flex",
             alignItems: "center",
             gap: 6,
-            height: 24,
-            padding: "0 10px",
+            height: 26,
+            padding: "0 11px",
             borderRadius: "var(--r-pill)",
             background: pillBBg,
             color: pillBFg,
-            fontSize: 11,
+            fontSize: 12,
             fontWeight: 500,
             letterSpacing: "0.05em",
             textTransform: "uppercase",
@@ -211,7 +236,7 @@ export function TopBar({ state, onRescan, firstRun = false }: TopBarProps) {
               borderRadius: "var(--r-control)",
               background: "var(--surface)",
               color: "var(--body)",
-              font: "500 13px var(--font-ui)",
+              font: "500 14px var(--font-ui)",
               cursor: scanning ? "default" : "pointer",
               flexShrink: 0,
             }}

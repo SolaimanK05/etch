@@ -32,9 +32,16 @@ export interface Arrow {
   target: string;
 }
 
+/** A box drawn for a package that does not exist yet (lowercase Python name). */
+export interface NewBox {
+  id: string;
+  intent: string;
+}
+
 export interface Drawing {
   layers: string[];
-  arrows: Arrow[];
+  arrows: Arrow[];      // may also start or end at a NewBox id
+  new_boxes: NewBox[];
 }
 
 export interface Violation {

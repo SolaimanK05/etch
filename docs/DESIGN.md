@@ -1,5 +1,7 @@
 # Etch — Design Spec (final, approved)
 
+**v2 (Sun 27 Sep, approved):** `docs/design/CanvasV2.html` (tabs 0–3) overrides the canvas, the landing drawing, colours and type sizes. See §6, §12 and §13; where v2 and the older files disagree, v2 wins.
+
 **Build exactly this.** The approved source of truth is the design canvas "Etch — App Design" (claude.ai artifact). Its files are copied verbatim in `docs/design/`:
 
 | File | What it is |
@@ -33,8 +35,9 @@ Put these in `frontend/src/styles/theme.css`, imported once in `main.tsx`. Compo
   --rule: #EAEAEA;         /* every border and divider, 1px */
   --ink: #111111;          /* headings, primary button, drawn lines */
   --body: #2F3437;         /* body text (12:1) */
-  --muted: #6F6E69;        /* secondary text (4.9:1 on paper) */
-  --faint: #B5B4AF;        /* disabled text, separators, strike line */
+  --muted: #55544F;        /* secondary text (7.3:1 on paper) */
+  --subtle: #6B6A65;       /* hints, placeholders, separators in text (5.2:1) */
+  --faint: #B5B4AF;        /* lines, strike line, disabled borders; NEVER text */
   --code-bg: #F7F6F3;      /* inline code, kbd */
   --hover: #F2F1EE;        /* ghost button hover, active tool */
   --dot: rgba(17,17,17,0.08); /* canvas dot grid */
@@ -42,7 +45,7 @@ Put these in `frontend/src/styles/theme.css`, imported once in `main.tsx`. Compo
   /* semantic pairs: background / text */
   --violation-bg: #FDEBEC; --violation: #9F2F2D;
   --obeys-bg:     #EDF3EC; --obeys:     #346538;
-  --working-bg:   #FBF3DB; --working:   #956400;
+  --working-bg:   #FBF3DB; --working:   #7A5200;
   --etched-bg:    #E1F3FE; --etched:    #1F6C9F;
   --row-hover-violation: #FDF7F7;
 
@@ -73,11 +76,11 @@ All text/background pairs above were contrast-checked (≥ 4.6:1 for text).
 | Rail heading (h1) | Geist | 30px / 600 / -0.02em / 1.15 |
 | First-run headline | Geist | 56px / 600 / -0.03em / 1.05 |
 | Seal word "Etched" | Geist | 32px / 600 / -0.02em / 1 |
-| Body / rail subtext | Geist | 14px / 400 / 0 / 1.55 (first-run lead: 17px / 1.6) |
-| Labels, buttons | Geist | 13px / 500 (primary button 15px / 500) |
-| Status pills | Geist | 11px / 500 / 0.05em / **uppercase** — the only uppercase in the app |
-| Paths, `file:line`, log, counts, branch | Geist Mono | 13px (paths), 12px (log, code), 11px (meta); `font-variant-numeric: tabular-nums` on anything that counts |
-| Canvas box labels | Nunito | 22px / 700 (canvas only, never in the chrome) |
+| Body / rail subtext | Geist | 15px / 400 / 0 / 1.55 (first-run lead: 18px / 1.6) |
+| Labels, buttons | Geist | 14px / 500 (primary button 16px / 500) |
+| Status pills | Geist | 12px / 500 / 0.05em / **uppercase** — the only uppercase in the app |
+| Paths, `file:line`, log, counts, branch | Geist Mono | 14px (paths), 13px (log, code), 12px (meta); `font-variant-numeric: tabular-nums` on anything that counts |
+| Canvas box labels | Nunito | 24px / 700 (canvas only, never in the chrome) |
 
 ## 4. Layout (1440 × 900 reference, fluid)
 
@@ -102,14 +105,22 @@ All text/background pairs above were contrast-checked (≥ 4.6:1 for text).
 - **Violation row**: status icon slot (18px) · path in mono 13/500 with `:line` in `--muted` · right label (140px slot) · the offending import line below in a `--code-bg` code block, ellipsis on overflow.
 - **Icons**: inline stroke SVG (2–2.2 stroke, round caps), as in the prototype. No icon library, no emoji.
 
-## 6. Canvas
+## 6. Canvas (v2: native Etch canvas, see `docs/design/CanvasV2.html`)
 
-- Excalidraw is the canvas. Configure: default font **Nunito** (`currentItemFontFamily` = Excalidraw's Nunito family), stroke `#111111`, stroke width 1.7-ish ("thin"/"bold" as closest), roughness kept sketchy (default "artist"), background transparent over our dot grid (or `viewBackgroundColor: "#FBFBFA"` with grid off).
+Excalidraw is the drawing engine only. **None of its own UI is visible**; everything around the drawing is Etch's.
+
+- **Hidden** (CSS on `.excalidraw`, since 0.18 has no props for these): main menu (hamburger), toolbar, "To move canvas…" hint, Library button and sidebar, style panel shown on selection, zoom/undo footer, help button, welcome screen, mobile bottom bar, right-click context menu.
+- **Etch toolbar**, floating top-centre: white panel, `1px var(--rule)`, radius 8, padding 4, gap 2. Buttons 36×36, radius 6, icon 19px stroke 2, `--muted`; active and hover `--hover` background + `--ink` icon; press `scale(0.97)`. Key letter bottom-right, mono 9px `--subtle`. Tooltip below on hover: ink background, white 13px, `<kbd>` mono 12px `#CFCDC7`. Tools, with dividers after Pan and Pen: **Select V · Pan H · Box R · Arrow A · Note T · Pen P · Eraser E** (Excalidraw types `selection`, `hand`, `rectangle`, `arrow`, `text`, `freedraw`, `eraser`). Tooltips: "Select V", "Pan H · or hold Space", "Box R", "Arrow A · box to box = rule", "Note T", "Pen P", "Eraser E". Any other Excalidraw tool reached by a shortcut (D, O, L, K, I, F…) switches straight back to Select.
+- **Bottom-left: legend** (panel style above, 13px `--muted`): "you allowed" · "code does it anyway" · dashed mini box "new box" · hint "Anything else is a note" in `--subtle`.
+- **Bottom-right: two panels** of 30px buttons: [Undo, Redo] and [Zoom out, `100%` (mono 13, tabular, click = reset to 100%), Zoom in, divider, Fit]. Undo/redo send Ctrl+Z / Ctrl+Shift+Z keydown events to the `.excalidraw` element (verified to work; there is no API). Zoom steps ×1.1 / ÷1.1 around the canvas centre, clamped 0.1–30; Fit = `scrollToContent(…fitToViewport, 0.85)`.
+- **Clean shapes, no wobble**: every element roughness 0. Code boxes: white fill (`#FFFFFF`, solid), stroke `#111111` 1.5, corner radius 10 (`roundness {type: 3, value: 10}`), label Nunito 24/700. Etch arrows: stroke 1.5, smooth curve (`roundness {type: 2}`), open arrowhead. User defaults (`currentItem*`): stroke `#111111`, width 1.5, roughness 0, solid white fill, round corners, round arrows, Nunito 20.
+- Background transparent over our dot grid.
 - **User-drawn boxes and arrows are the rules** (Excalidraw elements the user edits).
 - **Red violation arrows are NOT Excalidraw elements.** They are computed from the scan and drawn on an **SVG overlay** positioned exactly above the Excalidraw canvas, so they cannot be erased and can use CSS transitions. Keep it in sync with Excalidraw's `onScrollChange(scrollX, scrollY, zoom)`: the overlay `<g>` gets `transform: scale(zoom) translate(scrollX, scrollY)` so scene coordinates line up. Arrow endpoints come from the source/target box element bounds.
 - Violation arrow: `--violation`, width 2, `stroke-dasharray: 7 7`, round caps, small open arrowhead; a slight quadratic curve. Label pill on the arrow: `--violation-bg` / `--violation`, "2 imports" / "1 import".
 - Each red arrow also has an invisible 18px-wide hit path (`pointer-events: stroke`) for hover. The overlay itself is `pointer-events: none`.
-- Box subtitle under each label: mono 11px `--muted`, e.g. `demo_app.api · 4 files` (live file count).
+- Box subtitle under each label: mono 12px `--muted`, e.g. `demo_app.api · 4 files` (live file count).
+- A **new box** (§12) is drawn dashed (`strokeStyle: "dashed"`, fill `--paper`) with a **NEW** tag (HTML, overlay layer) straddling its top-right corner: height 24, pill, 12px uppercase 500, `--hover` background, `--muted` text, `1px dashed var(--muted)` border. When Bob has built it the box turns into a normal code box and the tag becomes **CREATED** (`--obeys-bg` / `--obeys`, solid transparent border, 240ms colour crossfade), then fades out after 4 s.
 
 ## 7. The flow — state machine (port from `Prototype.dc.html`)
 
@@ -119,11 +130,11 @@ Phases: `empty` → `scanning` → `idle` → `running` → `done` → `etched` 
 |---|---|---|---|---|---|---|
 | `empty` | First-run screen (`Empty.dc.html`) | – | – | – | – | – |
 | `idle` | "N imports break your drawing" + "You drew … These lines skip the services layer." | hidden | red, N violations | hidden | **Make it so** (black) + caption | disabled, "Unlocks at 0 violations" |
-| `running` | "Making it so" + `m:ss · 0.00 of 1 Bobcoin · agent mode` + 2px progress bar | "Bob is working" (amber, pulsing dot) | counts down | visible, streaming | `Stop` ghost + "Changes land on etch/make-it-so, never on main." | disabled |
-| `done` | "Your code obeys the drawing" + "3 imports fixed in m:ss for 0.64 Bobcoin. 18 of 18 tests pass. Etch it to make the drawing a rule." | hidden | green, 0 violations | visible (final) | caption "All clear on etch/make-it-so…" | **black, enabled**, "Make the drawing a rule" |
+| `running` | "Making it so" + `m:ss · agent mode` + amber coin chip "max **1** Bobcoin" (§13) + 2px progress bar | "Bob is working" (amber, pulsing dot) | counts down | visible, streaming | `Stop` ghost + "Changes land on etch/make-it-so, never on main." | disabled |
+| `done` | "Your code obeys the drawing" + "3 imports fixed in m:ss for" + amber coin chip counting up to the real cost (§13) | amber Bobcoin pill (§13) | green, 0 violations | visible (final) | caption "All clear on etch/make-it-so…" | **black, enabled**, "Make the drawing a rule" |
 | `etched` | "Etched" + "Every pull request is now checked against this drawing. No AI in that check, no cost." | "Etched" (blue) | green, 0 | replaced by "Written to your repo" file list | **Open pull request** (black) | "Etched" in `--etched`, disabled |
 
-Row status per violation: `open` (red dot + red rule pill, e.g. `api ↛ db`) → `queued` (grey ring, "queued") → `fixing` (pulsing amber dot, "fixing") → `fixed` (green check disc, "fixed", strike-through, path turns `--muted`, code line opacity 0.5).
+Row status per violation: `open` (red dot + red rule pill, e.g. `api ↛ db`) → `queued` (grey ring, "queued") → `fixing` (pulsing amber dot, "fixing") → `fixed` (green check disc, "fixed", strike-through, path and code line turn `--muted`; never fade text with opacity).
 Branch label: `main` in idle, `etch/make-it-so` from `running` on.
 
 ### Wiring the real Bob run (backend SSE → UI)
@@ -148,13 +159,13 @@ Global: only `transform` and `opacity` (plus colour/filter for crossfades) anima
 | 4 | Rows persist across phases | the same three rows stay mounted from `idle` to `etched`; they change in place (no remount) |
 | 5 | Row icon state | 4 stacked icons; active `opacity:1; scale(1)`, others `opacity:0; scale(0.9)`; 150ms (opacity ease, transform ease-out) |
 | 6 | Row right label | 4 stacked labels, 200ms opacity/blur crossfade |
-| 7 | Row fixed | strike line `scaleX(0→1)`, `transform-origin:left`, 200ms ease-out; path colour → `--muted` 180ms; code opacity → 0.5 180ms. Row never collapses |
+| 7 | Row fixed | strike line `scaleX(0→1)`, `transform-origin:left`, 200ms ease-out; path and code colour → `--muted` 180ms. Row never collapses |
 | 8 | Rows enter after a scan / rescan | keyframe `translateY(6px)+opacity 0 → none`, 200ms ease-out, stagger 40ms per row |
 | 9 | Row ↔ arrow hover | hovering a row or its arrow: arrow `stroke-width 2 → 3.4` (120ms ease), matching open rows background `--row-hover-violation` (120ms) |
 | 10 | Log line arrives | keyframe `translateY(4px)+opacity 0 → none`, 150ms ease-out, no stagger; list anchored to the bottom (`justify-content:flex-end`), keep the last 11 lines |
 | 11 | Log region appears | `opacity 0→1` + `translateY(8px→0)`, 200ms |
 | 12 | Count pill | colour/background transition 200ms (red → green at 0); the digit is a 0–9 vertical strip in a 14px-tall `overflow:hidden` window, `translateY(-n × 14px)`, 280ms ease-out; label switches "violations"/"violation" |
-| 13 | Activity pill | 128px container fades 200ms; "Bob is working" / "Etched" layers crossfade with blur(2px) 200ms; amber dot `pulse` 1.4s ease-in-out infinite |
+| 13 | Activity pill | 144px container fades 200ms; "Bob is working" / "Etched" layers crossfade with blur(2px) 200ms; amber dot `pulse` 1.4s ease-in-out infinite |
 | 14 | Progress bar | `transform: scaleX(fixed/total)`, origin left, 300ms ease-out (never animate width) |
 | 15 | Bobcoin number | counts up to the final value (≈50ms ticks, 30% easing per tick), tabular numerals |
 | 16 | Fix toast (canvas, top centre) | always mounted; show: `opacity 1, translate(-50%, 0)` over 200ms; hide: `opacity 0, translate(-50%, -8px)` over 150ms; shows for 1500ms; a new toast while one is visible = hide, wait 170ms, show the new text |
@@ -173,7 +184,7 @@ Global: only `transform` and `opacity` (plus colour/filter for crossfades) anima
 - First run: "Draw the architecture. Bob makes the code obey." · "Etch sketches your Python repo as boxes and arrows. Erase an arrow and every import that crosses it turns red." · label "Repository folder" · button "Scan" · "Read-only. Nothing changes until you press Make it so." · steps: "Draw — Keep the arrows you allow. Erase the ones you don't." / "Make it so — IBM Bob refactors every import that breaks the drawing, then reruns your tests." / "Etch it — The drawing becomes import-linter contracts, a Bob skill and a pull-request check." · top bar right: "Built with IBM Bob".
 - Idle caption under Make it so: "IBM Bob refactors on a new branch, reruns your tests, then Etch rescans."
 - Toast: "`<path>` now goes through services" (adapt the layer name to the rule).
-- Legend: "you allowed" · "code does it anyway" · "Hover a red arrow or a row".
+- Legend: "you allowed" · "code does it anyway" · "new box" · "Anything else is a note".
 - Log header: "Live from IBM Bob".
 - Etched files list title: "Written to your repo"; rows `.importlinter` (N contracts), `.github/workflows/etch.yml` (PR check), `.bob/skills/etch-architecture/` (Bob skill), `.etch/drawing.json` (the sketch).
 
@@ -186,3 +197,18 @@ Global: only `transform` and `opacity` (plus colour/filter for crossfades) anima
 ## 11. Banned
 
 Serif fonts, handwriting fonts, Inter/Roboto/system-ui, gradients (except the dot grid), heavy shadows, cards around rows, emoji, icon libraries, uppercase outside pills, bounce/spring on anything, animating width/height/top/left, animation on high-frequency canvas actions.
+
+## 12. New box: draw a box = new package (v2, task 8)
+
+- **What counts:** a rectangle the user drew (not a scanned code box) whose label's first line is a lowercase Python package name (`^[a-z_][a-z0-9_]*$`, max 40, not a keyword, not an existing package) **and** that has at least one arrow to a code box. The label's remaining lines are the **intent**, folded to one line. First such box per name wins. Anything else stays a note.
+- **Rules:** its arrows are rules like any other; the box counts as drawn, so undrawn imports into it become violations once it exists.
+- **Rail:** a new-box row sits above the violation rows: dashed-square icon (18px slot), name in mono 14/500, right label "new package" in `--muted` (running: "building…" in `--working`; built: "created" in `--obeys`), and the intent in the code block (Geist 14, not mono) or "no description" in `--subtle`. When built, the code block shows `shop/pricing/ · N files` in mono.
+- **Heading** (`idle` with boxes): "N imports, M new box(es)" (only boxes: "M new box(es) to build"); subtext "IBM Bob fixes the imports and builds the box you drew, then reruns your tests." Make it so is enabled whenever imports **or** boxes are pending; Etch it stays disabled until every drawn box is built.
+- **Run:** the backend streams a `layers` event when the set of packages changes; the dashed box is then replaced by a real code box in place (same position and size, arrows kept) and its tag becomes CREATED. If a box is still missing at the end the run is an error: "Bob didn't create the pricing package".
+
+## 13. Bobcoin highlight (v2)
+
+Live runs learn the cost only from Bob's final `result` event, so never invent a running number.
+- **Running:** amber chip in the rail meta line: coin icon + "max **1** Bobcoin". Chip = height 28, pill, `--working-bg`, mono 14/500 `--working`, numbers 600 `#5C3D00`, 16px coin icon (two concentric circles, stroke 2.2).
+- **Done:** the same chip inline after "…fixed in m:ss for", popping in (`opacity 0→1, scale 0.9→1`, 420ms ease-out) and counting up to `stats.session_costs`.
+- **Top bar:** from `done` on (through `etched`, until the next scan) an amber pill "◎ 0.61 BOBCOIN" (height 26, 12px uppercase, `--working-bg` / `--working`, 13px coin icon) sits left of the count pill.

@@ -1,8 +1,9 @@
 import type { State } from "../lib/state";
-import { openCount, canEtch, progress } from "../lib/state";
+import { openCount, canEtch, progress, workCount, newBoxCount } from "../lib/state";
 import { Rows } from "./Rows";
 import { LogPanel } from "./LogPanel";
 import { CountUp } from "./CountUp";
+import { CoinChip } from "./Coin";
 
 interface RailProps {
   state: State;
@@ -55,8 +56,8 @@ export function Rail({ state, simulated, onHover, onMakeItSo, onStop, onEtchIt, 
   const headEtched = headLayer(phase === "etched");
 
   // CTA layer visibilities — motion #3
-  const ctaIdle   = headLayer((phase === "idle" || phase === "error") && open > 0);
-  const ctaIdleEmpty = headLayer((phase === "idle") && open === 0);
+  const ctaIdle   = headLayer((phase === "idle" || phase === "error") && workCount(state) > 0);
+  const ctaIdleEmpty = headLayer((phase === "idle") && workCount(state) === 0);
   const ctaRun    = headLayer(phase === "running");
   const ctaDone   = headLayer(phase === "done");
   const ctaEtched = headLayer(phase === "etched");
@@ -69,14 +70,32 @@ export function Rail({ state, simulated, onHover, onMakeItSo, onStop, onEtchIt, 
     return "You drew " + parts.slice(0, 4).join(", ") + (arrows.length > 4 ? "…" : "") + ". These lines cross an arrow you didn't draw.";
   })();
 
-  // Done subtext
+  // New boxes (DESIGN.md §12)
+  const boxes = newBoxCount(state);
+  const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+  const idleHeading = boxes === 0
+    ? (open === 1 ? "1 import breaks your drawing" : `${open} imports break your drawing`)
+    : open === 0
+      ? `${plural(boxes, "new box", "new boxes")} to build`
+      : `${plural(open, "import", "imports")}, ${plural(boxes, "new box", "new boxes")}`;
+  const boxWord = boxes === 1 ? "box" : "boxes";
+  const boxesSummary = open > 0
+    ? `IBM Bob fixes the imports and builds the ${boxWord} you drew, then reruns your tests.`
+    : `IBM Bob builds the ${boxWord} you drew, then reruns your tests.`;
+
+  // Done subtext: "4 imports fixed and 1 box built in 1:52 for"
   const fixedCount = rows.filter((r) => r.status === "fixed").length;
-  const doneText = `${fixedCount} import${fixedCount !== 1 ? "s" : ""} fixed in ${clock} for `;
+  const builtCount = state.builtBoxes.length;
+  const doneParts = [
+    fixedCount > 0 || builtCount === 0 ? plural(fixedCount, "import fixed", "imports fixed") : null,
+    builtCount > 0 ? plural(builtCount, "box built", "boxes built") : null,
+  ].filter(Boolean);
+  const doneText = `${doneParts.join(" and ")} in ${clock} for `;
 
   // Footer Etch it button
   const etchReady = canEtchNow && phase !== "etched";
   const etchBg = etchReady ? "var(--ink)" : "var(--paper)";
-  const etchFg = etchReady ? "#FFFFFF" : (phase === "etched" ? "var(--etched)" : "var(--faint)");
+  const etchFg = etchReady ? "#FFFFFF" : (phase === "etched" ? "var(--etched)" : "var(--subtle)");
   const etchBorder = etchReady ? "var(--ink)" : "var(--rule)";
   const etchLabel = phase === "etched" ? "Etched" : "Etch it";
   const etchHint = phase === "etched"
@@ -112,11 +131,11 @@ export function Rail({ state, simulated, onHover, onMakeItSo, onStop, onEtchIt, 
                 lineHeight: 1.15, letterSpacing: "-0.02em",
                 color: "var(--ink)",
               }}>Bob stopped</h1>
-              <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: "var(--violation)" }}>
+              <p style={{ margin: 0, fontSize: 15, lineHeight: 1.55, color: "var(--violation)" }}>
                 {state.error}
               </p>
             </>
-          ) : open > 0 ? (
+          ) : workCount(state) > 0 ? (
             <>
               <h1 style={{
                 margin: 0,
@@ -125,10 +144,10 @@ export function Rail({ state, simulated, onHover, onMakeItSo, onStop, onEtchIt, 
                 lineHeight: 1.15, letterSpacing: "-0.02em",
                 color: "var(--ink)",
               }}>
-                {open === 1 ? "1 import breaks your drawing" : `${open} imports break your drawing`}
+                {idleHeading}
               </h1>
-              <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: "var(--muted)" }}>
-                {arrowsSummary}
+              <p style={{ margin: 0, fontSize: 15, lineHeight: 1.55, color: "var(--muted)" }}>
+                {boxes > 0 ? boxesSummary : arrowsSummary}
               </p>
             </>
           ) : (
@@ -140,7 +159,7 @@ export function Rail({ state, simulated, onHover, onMakeItSo, onStop, onEtchIt, 
                 lineHeight: 1.15, letterSpacing: "-0.02em",
                 color: "var(--ink)",
               }}>Your code obeys the drawing</h1>
-              <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: "var(--muted)" }}>
+              <p style={{ margin: 0, fontSize: 15, lineHeight: 1.55, color: "var(--muted)" }}>
                 Every import follows an arrow you drew. Etch it to make the drawing a rule.
               </p>
             </>
@@ -162,19 +181,16 @@ export function Rail({ state, simulated, onHover, onMakeItSo, onStop, onEtchIt, 
           }}>Making it so</h1>
           <div style={{
             display: "flex", alignItems: "center", gap: 12, whiteSpace: "nowrap",
-            fontFamily: "var(--font-mono)", fontSize: 12,
+            fontFamily: "var(--font-mono)", fontSize: 13,
             color: "var(--muted)", fontVariantNumeric: "tabular-nums",
           }}>
             <span>{clock}</span>
-            <span style={{ color: "var(--faint)" }}>·</span>
-            <span>
-              <span style={{ color: "var(--ink)" }}>
-                <CountUp target={coins} placeholder="—" />
-              </span>
-              {" "}of 1 Bobcoin
-            </span>
-            <span style={{ color: "var(--faint)" }}>·</span>
+            <span style={{ color: "var(--subtle)" }}>·</span>
             <span>agent mode</span>
+            {/* Live runs learn the cost only from Bob's final result event: show the cap until then */}
+            <CoinChip>
+              {coins === null ? <>max <b>1</b> Bobcoin</> : <><b><CountUp target={coins} /></b> of 1 Bobcoin</>}
+            </CoinChip>
           </div>
           {/* Progress bar — motion #14 */}
           <div style={{
@@ -206,9 +222,12 @@ export function Rail({ state, simulated, onHover, onMakeItSo, onStop, onEtchIt, 
             lineHeight: 1.15, letterSpacing: "-0.02em",
             color: "var(--ink)",
           }}>Your code obeys the drawing</h1>
-          <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: "var(--muted)" }}>
+          <p style={{ margin: 0, fontSize: 15, lineHeight: 1.55, color: "var(--muted)" }}>
             {doneText}
-            <CountUp target={coins} />{" "}Bobcoin. Etch it to make the drawing a rule.
+            {/* remount on phase change so the chip pops in when the cost is revealed */}
+            <CoinChip key={phase} pop>
+              <b><CountUp target={coins} /></b> Bobcoin
+            </CoinChip>
           </p>
         </div>
 
@@ -225,7 +244,7 @@ export function Rail({ state, simulated, onHover, onMakeItSo, onStop, onEtchIt, 
             lineHeight: 1.15, letterSpacing: "-0.02em",
             color: "var(--ink)",
           }}>Etched</h1>
-          <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: "var(--muted)" }}>
+          <p style={{ margin: 0, fontSize: 15, lineHeight: 1.55, color: "var(--muted)" }}>
             Every pull request is now checked against this drawing. No AI in that check, no cost.
           </p>
         </div>
@@ -261,7 +280,7 @@ export function Rail({ state, simulated, onHover, onMakeItSo, onStop, onEtchIt, 
               gap: 10,
               border: 0, borderRadius: "var(--r-control)",
               background: "var(--ink)", color: "#FFFFFF",
-              font: "500 15px var(--font-ui)",
+              font: "500 16px var(--font-ui)",
               cursor: "pointer",
             }}
           >
@@ -271,7 +290,7 @@ export function Rail({ state, simulated, onHover, onMakeItSo, onStop, onEtchIt, 
               border: "1px solid #3A3A3A",
               borderRadius: "var(--r-code)",
               fontFamily: "var(--font-mono)",
-              fontSize: 11, color: "var(--faint)",
+              fontSize: 12, color: "var(--faint)",
             }}>Ctrl ↵</kbd>
           </button>
           {phase === "error" ? (
@@ -282,11 +301,11 @@ export function Rail({ state, simulated, onHover, onMakeItSo, onStop, onEtchIt, 
                 height: 36, padding: "0 14px",
                 border: "1px solid var(--rule)", borderRadius: "var(--r-control)",
                 background: "var(--surface)", color: "var(--body)",
-                font: "500 13px var(--font-ui)", cursor: "pointer",
+                font: "500 14px var(--font-ui)", cursor: "pointer",
               }}
             >Undo changes</button>
           ) : (
-            <span style={{ fontSize: 13, lineHeight: 1.5, color: "var(--muted)" }}>
+            <span style={{ fontSize: 14, lineHeight: 1.5, color: "var(--muted)" }}>
               IBM Bob refactors on a new branch, reruns your tests, then Etch rescans.
             </span>
           )}
@@ -311,10 +330,10 @@ export function Rail({ state, simulated, onHover, onMakeItSo, onStop, onEtchIt, 
               height: 36, padding: "0 14px",
               border: "1px solid var(--rule)", borderRadius: "var(--r-control)",
               background: "var(--surface)", color: "var(--body)",
-              font: "500 13px var(--font-ui)", cursor: "pointer",
+              font: "500 14px var(--font-ui)", cursor: "pointer",
             }}
           >Stop</button>
-          <span style={{ fontSize: 12, lineHeight: 1.45, color: "var(--muted)" }}>
+          <span style={{ fontSize: 13, lineHeight: 1.45, color: "var(--muted)" }}>
             Changes land on{" "}
             <span style={{ fontFamily: "var(--font-mono)", color: "var(--body)" }}>
               etch/make-it-so
@@ -329,7 +348,7 @@ export function Rail({ state, simulated, onHover, onMakeItSo, onStop, onEtchIt, 
           display: "flex", alignItems: "center",
           ...ctaDone,
         }}>
-          <span style={{ fontSize: 13, lineHeight: 1.5, color: "var(--muted)" }}>
+          <span style={{ fontSize: 14, lineHeight: 1.5, color: "var(--muted)" }}>
             All clear on{" "}
             <span style={{ fontFamily: "var(--font-mono)", color: "var(--body)" }}>
               etch/make-it-so
@@ -353,13 +372,13 @@ export function Rail({ state, simulated, onHover, onMakeItSo, onStop, onEtchIt, 
               display: "flex", alignItems: "center", justifyContent: "center",
               border: 0, borderRadius: "var(--r-control)",
               background: "var(--ink)", color: "#FFFFFF",
-              font: "500 15px var(--font-ui)",
+              font: "500 16px var(--font-ui)",
               cursor: prPending ? "not-allowed" : "pointer",
               opacity: prPending ? 0.7 : 1,
             }}
           >{prPending ? "Opening…" : "Open pull request"}</button>
           {prMessage && (
-            <span style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.4 }}>
+            <span style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.4 }}>
               {prMessage}
             </span>
           )}
@@ -383,14 +402,14 @@ export function Rail({ state, simulated, onHover, onMakeItSo, onStop, onEtchIt, 
             border: `1px solid ${etchBorder}`,
             borderRadius: "var(--r-control)",
             background: etchBg, color: etchFg,
-            font: "500 13px var(--font-ui)",
+            font: "500 14px var(--font-ui)",
             cursor: etchReady ? "pointer" : "default",
             transition: "background-color 200ms ease, color 200ms ease, border-color 200ms ease",
           }}
         >
           {etchLabel}
         </button>
-        <span style={{ fontSize: 12, color: "var(--muted)" }}>{etchHint}</span>
+        <span style={{ fontSize: 13, color: "var(--muted)" }}>{etchHint}</span>
       </div>
       </div>
     </aside>

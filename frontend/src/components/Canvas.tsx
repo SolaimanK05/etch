@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Excalidraw, convertToExcalidrawElements } from "@excalidraw/excalidraw";
+import { CaptureUpdateAction, Excalidraw, convertToExcalidrawElements } from "@excalidraw/excalidraw";
 import type { ExcalidrawImperativeAPI, AppState } from "@excalidraw/excalidraw/types";
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import type { State } from "../lib/state";
 import type { ArchGraph } from "../types";
-import { drawingFromElements, notesFromElements, sceneSkeleton, layerOfBox } from "../lib/drawing";
+import { drawingFromElements, notesFromElements, sceneSkeleton, layerOfBox, adoptionPlan, rebindForAdoption, boxSkeleton } from "../lib/drawing";
 import { getItem, setItem } from "../lib/persist";
-import { ViolationOverlay } from "./ViolationOverlay";
+import { isAllowedTool, stepZoom, zoomAround, type ToolType } from "../lib/canvasControls";
+import { Toolbar, ViewControls } from "./CanvasControls";
+import { ViolationOverlay, type BoxTag } from "./ViolationOverlay";
 import { Toast } from "./Toast";
 
 interface Rect {
@@ -31,13 +33,23 @@ interface CanvasProps {
 
 const SAVE_THROTTLE_MS = 500;
 
+// DESIGN.md §6 v2: whatever the user draws is clean too (no wobble, Etch ink, Nunito)
 const INITIAL_APP_STATE = {
   viewBackgroundColor: "transparent",
   currentItemFontFamily: 6,
+  currentItemFontSize: 20,
   currentItemStrokeColor: "#111111",
-  currentItemStrokeWidth: 2,
-  currentItemRoughness: 1,
+  currentItemBackgroundColor: "transparent",
+  currentItemStrokeWidth: 1.5,
+  currentItemRoughness: 0,
+  currentItemRoundness: "round",
+  currentItemArrowType: "round",
+  currentItemEndArrowhead: "arrow",
 } as const;
+
+// A drawn box that will become a package: dashed, on paper (DESIGN.md §12)
+const NEW_BOX_STYLE = { strokeStyle: "dashed", backgroundColor: "#fbfbfa", fillStyle: "solid" } as const;
+const CREATED_TAG_MS = 4000;
 
 /** Zoom so every box fits with breathing room for the floating panels. */
 function fitScene(api: ExcalidrawImperativeAPI | null) {
@@ -79,6 +91,14 @@ export function Canvas({ state, onDrawingChange, onNotesChange, onHover }: Canva
   // Track graph identity to detect when to rebuild the scene
   const lastGraphKeyRef = useRef<string>("");
 
+  // New boxes (DESIGN.md §12): rects of drawn boxes, ids we dashed, boxes just built
+  const [newBoxRects, setNewBoxRects] = useState<Record<string, Rect>>({});
+  const dashedIdsRef = useRef<Set<string>>(new Set());
+  const [created, setCreated] = useState<string[]>([]);
+  const [createdVisible, setCreatedVisible] = useState(false);
+  const [activeTool, setActiveTool] = useState("selection");
+  const activeToolRef = useRef("selection");
+
   // The Canvas only mounts after a scan, so the first scene goes in as initialData.
   // (An updateScene() right after mount is overwritten by Excalidraw's own async
   // initialData load.) Later layer-set changes go through the effect below.
@@ -115,8 +135,61 @@ export function Canvas({ state, onDrawingChange, onNotesChange, onHover }: Canva
 
     const layerKey = layerKeyOf(graph, repoPath);
     if (layerKey === lastGraphKeyRef.current) return;
-    lastGraphKeyRef.current = layerKey;
 
+    const sameRepo = lastGraphKeyRef.current.endsWith("|" + repoPath);
+    const layerIds = graph.layers.map((l) => l.id);
+
+    if (sameRepo) {
+      // Try adoption: convert drawn new-box rects into real code boxes
+      const scene = api.getSceneElementsIncludingDeleted();
+      const plan = adoptionPlan(scene, layerIds);
+      // covered = every layer id is a live etch box or covered by a plan adoption
+      const liveEtchIds = new Set(
+        scene
+          .filter((el) => !el.isDeleted && el.type === "rectangle" && el.id.startsWith("etch-box-"))
+          .map((el) => el.id.slice("etch-box-".length))
+      );
+      const covered = layerIds.every((id) => liveEtchIds.has(id) || plan.some((p) => p.name === id));
+
+      if (covered) {
+        if (plan.length > 0) {
+          const rebound = rebindForAdoption(scene, plan);
+          const created = convertToExcalidrawElements(
+            plan.map((p) => {
+              // Get position/size from the drawn rect
+              const drawnRect = scene.find((el) => el.id === p.rectId);
+              const rect = drawnRect
+                ? { x: (drawnRect as { x: number }).x, y: (drawnRect as { y: number }).y, width: (drawnRect as { width: number }).width, height: (drawnRect as { height: number }).height }
+                : { x: 0, y: 0, width: 220, height: 96 };
+              return boxSkeleton(p.name, rect);
+            }),
+            { regenerateIds: false }
+          );
+          // Attach arrow bindings and customData to the created rectangles
+          const createdWithArrows = created.map((el) => {
+            const adoption = plan.find((p) => p.rectId !== el.id && el.id === "etch-box-" + p.name);
+            if (!adoption) return el;
+            // keep the label's binding; add the arrows
+            const boundElements = [
+              ...(el.boundElements ?? []),
+              ...adoption.arrowIds.map((id) => ({ id, type: "arrow" as const })),
+            ];
+            const extra: Record<string, unknown> = { boundElements };
+            if (adoption.intent) extra.customData = { etchIntent: adoption.intent };
+            return { ...el, ...extra };
+          });
+          api.updateScene({ elements: [...rebound, ...createdWithArrows] });
+          // NEW tag becomes CREATED on the real box, then fades (DESIGN.md §6)
+          setCreated(plan.map((p) => p.name));
+          setCreatedVisible(true);
+          setTimeout(() => setCreatedVisible(false), CREATED_TAG_MS);
+        }
+        lastGraphKeyRef.current = layerKey;
+        return;
+      }
+    }
+
+    lastGraphKeyRef.current = layerKey;
     api.updateScene({ elements: buildElements(graph, repoPath) });
     setTimeout(() => fitScene(apiRef.current), 50);
   }, [state.graph, state.repoPath, api]);
@@ -176,6 +249,52 @@ export function Canvas({ state, onDrawingChange, onNotesChange, onHover }: Canva
         }, 250);
       }
 
+      // Only Etch's tools (DESIGN.md §6): a shortcut to diamond, ellipse, line… snaps back to Select
+      const tool = appState.activeTool.type;
+      if (!isAllowedTool(tool)) {
+        requestAnimationFrame(() => apiRef.current?.setActiveTool({ type: "selection" }));
+      } else if (tool !== activeToolRef.current) {
+        activeToolRef.current = tool;
+        setActiveTool(tool);
+      }
+
+      // New boxes (DESIGN.md §12): remember where they are for the NEW tag, and draw
+      // them dashed on paper; a box that stops qualifying goes back to a plain shape.
+      const plan = adoptionPlan(elArray, drawing.new_boxes.map((b) => b.id));
+      const nbRects: Record<string, Rect> = {};
+      const toDash: string[] = [];
+      for (const p of plan) {
+        const el = elArray.find((e) => e.id === p.rectId);
+        if (!el) continue;
+        nbRects[p.name] = { x: el.x, y: el.y, width: el.width, height: el.height };
+        if (el.strokeStyle !== "dashed") toDash.push(el.id);
+      }
+      const qualifying = new Set(plan.map((p) => p.rectId));
+      const toUndash = [...dashedIdsRef.current].filter(
+        (id) => !qualifying.has(id) && elArray.some((e) => e.id === id && !e.isDeleted),
+      );
+      if (toDash.length || toUndash.length) {
+        toDash.forEach((id) => dashedIdsRef.current.add(id));
+        toUndash.forEach((id) => dashedIdsRef.current.delete(id));
+        requestAnimationFrame(() => {
+          const a = apiRef.current;
+          if (!a) return;
+          a.updateScene({
+            elements: a.getSceneElementsIncludingDeleted().map((e) =>
+              toDash.includes(e.id)
+                ? { ...e, ...NEW_BOX_STYLE, version: e.version + 1 }
+                : toUndash.includes(e.id)
+                  ? { ...e, strokeStyle: "solid", backgroundColor: "transparent", version: e.version + 1 }
+                  : e,
+            ),
+            captureUpdate: CaptureUpdateAction.NEVER, // styling, not a user edit: keep it out of undo
+          });
+        });
+      }
+      requestAnimationFrame(() =>
+        setNewBoxRects((prev) => (JSON.stringify(prev) === JSON.stringify(nbRects) ? prev : nbRects)),
+      );
+
       // Compute notes and report changes
       const notes = notesFromElements(elArray);
       const notesJson = JSON.stringify(notes);
@@ -204,6 +323,32 @@ export function Canvas({ state, onDrawingChange, onNotesChange, onHover }: Canva
     [onDrawingChange, onNotesChange, state.repoPath],
   );
 
+  // Etch's own controls (DESIGN.md §6 v2) drive Excalidraw through its API
+  const selectTool = useCallback((type: ToolType) => {
+    apiRef.current?.setActiveTool({ type });
+  }, []);
+
+  // Excalidraw has no undo API; its keyboard handler on the .excalidraw element does it
+  const sendUndoKey = useCallback((redo: boolean) => {
+    containerRef.current?.querySelector(".excalidraw")?.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "z", code: "KeyZ", ctrlKey: true, shiftKey: redo, bubbles: true, cancelable: true }),
+    );
+  }, []);
+
+  // Zoom around the canvas centre so what you look at stays put
+  const zoomTo = useCallback((next: (zoom: number) => number) => {
+    const a = apiRef.current;
+    const el = containerRef.current;
+    if (!a || !el) return;
+    const s = a.getAppState();
+    const v = zoomAround(
+      { scrollX: s.scrollX, scrollY: s.scrollY, zoom: s.zoom.value },
+      next(s.zoom.value),
+      { x: el.clientWidth / 2, y: el.clientHeight / 2 },
+    );
+    a.updateScene({ appState: { scrollX: v.scrollX, scrollY: v.scrollY, zoom: { value: v.zoom } as AppState["zoom"] } });
+  }, []);
+
   // Etched seal — motion #19
   const isEtched = state.phase === "etched";
   const sealOpacity = isEtched ? 1 : 0;
@@ -218,6 +363,13 @@ export function Canvas({ state, onDrawingChange, onNotesChange, onHover }: Canva
     return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
   })();
   const boxCount = state.drawing.layers.length;
+
+  const tags: BoxTag[] = [
+    ...Object.entries(newBoxRects).map(([name, rect]) => ({ name, rect, kind: "new" as const, visible: true })),
+    ...created
+      .filter((name) => boxRects[name])
+      .map((name) => ({ name, rect: boxRects[name], kind: "created" as const, visible: createdVisible })),
+  ];
   const ruleCount = state.drawing.arrows.length;
 
   return (
@@ -252,11 +404,23 @@ export function Canvas({ state, onDrawingChange, onNotesChange, onHover }: Canva
       <ViolationOverlay
         state={state}
         boxRects={boxRects}
+        tags={tags}
         view={view}
         containerRect={containerRect}
         onHover={onHover}
       />
 
+      {/* Etch toolbar (top centre) and view controls (bottom right) */}
+      <Toolbar active={activeTool} onSelect={selectTool} />
+      <ViewControls
+        zoom={view.zoom}
+        onUndo={() => sendUndoKey(false)}
+        onRedo={() => sendUndoKey(true)}
+        onZoomOut={() => zoomTo((z) => stepZoom(z, -1))}
+        onZoomIn={() => zoomTo((z) => stepZoom(z, 1))}
+        onResetZoom={() => zoomTo(() => 1)}
+        onFit={() => fitScene(apiRef.current)}
+      />
       {/* Toast — motion #16 */}
       <Toast toast={state.toast} />
 
@@ -293,7 +457,7 @@ export function Canvas({ state, onDrawingChange, onNotesChange, onHover }: Canva
           }}>Etched</span>
           <span style={{
             fontFamily: "var(--font-mono)",
-            fontSize: 11,
+            fontSize: 12,
             letterSpacing: "0.04em",
           }}>
             {sealDate} · {boxCount} BOXES · {ruleCount} RULES
@@ -301,34 +465,29 @@ export function Canvas({ state, onDrawingChange, onNotesChange, onHover }: Canva
         </div>
       </div>
 
-      {/* Legend — positioned in theme.css (.canvas-legend) so it clears Excalidraw's own controls */}
+      {/* Legend, bottom-left (DESIGN.md §6 v2, §9) */}
       <div className="canvas-legend">
-        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <span className="legend-item">
           <svg width="22" height="6" aria-hidden="true">
-            <path d="M1 3h20" stroke="var(--ink)" strokeWidth="1.7" strokeLinecap="round" />
+            <path d="M1 3h20" stroke="var(--ink)" strokeWidth="1.5" strokeLinecap="round" />
           </svg>
           you allowed
         </span>
-        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <span className="legend-item">
           <svg width="22" height="6" aria-hidden="true">
-            <path d="M1 3h20" stroke="var(--violation)" strokeWidth="2"
-              strokeDasharray="5 4" strokeLinecap="round" />
+            <path d="M1 3h20" stroke="var(--violation)" strokeWidth="2" strokeDasharray="5 4" strokeLinecap="round" />
           </svg>
           code does it anyway
         </span>
-        {/* Only code boxes and arrows between them are rules; everything else is annotation */}
-        <span className="legend-note" title="Boxes come from your code. Anything else you draw is a note.">
+        <span className="legend-item" title="Draw a box, name it, connect it with an arrow: Bob builds the package">
           <svg width="18" height="12" aria-hidden="true">
-            <ellipse cx="9" cy="6" rx="7.5" ry="4.5" fill="none" stroke="var(--faint)" strokeWidth="1.4" strokeDasharray="2 2.5" />
+            <rect x="1" y="1" width="16" height="10" rx="3" fill="none" stroke="var(--ink)" strokeWidth="1.3" strokeDasharray="3 2.5" />
           </svg>
-          <span className="legend-note-long">anything else is a note</span>
-          <span className="legend-note-short">note</span>
+          new box
         </span>
-        <span className="legend-hint">
-          <span className="legend-hint-hover">Hover a red arrow or a row</span>
-          <span className="legend-hint-touch">Tap a red arrow or a row</span>
-        </span>
-      </div>
+        <span className="legend-hint" title="Only code boxes, new boxes and arrows between them are rules">
+          Anything else is a note
+        </span>      </div>
     </div>
   );
 }

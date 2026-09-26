@@ -24,6 +24,7 @@ function clockStr(ms: number): string {
 
 export function simulateRun(state: State, dispatch: (a: Action) => void): () => void {
   const rows = state.rows.filter((r) => r.status !== "fixed");
+  const newBoxes = state.drawing.new_boxes;
   const timers: ReturnType<typeof setTimeout>[] = [];
   let cancelled = false;
 
@@ -41,7 +42,8 @@ export function simulateRun(state: State, dispatch: (a: Action) => void): () => 
   let step = 0;
   let coinsAccum = 0;
   const totalCoins = 0.64;
-  const coinsPerStep = rows.length > 0 ? totalCoins / (rows.length * 4 + 3) : totalCoins;
+  const totalWork = rows.length + newBoxes.length;
+  const coinsPerStep = totalWork > 0 ? totalCoins / (totalWork * 4 + 3) : totalCoins;
 
   const steps: ScriptStep[] = [];
 
@@ -54,12 +56,17 @@ export function simulateRun(state: State, dispatch: (a: Action) => void): () => 
     coins: coinsAccum += coinsPerStep,
   });
 
-  // Step: plan N imports
+  // Step: plan N imports[, M new boxes][, 1 rule each]
   const planCount = rows.length;
+  const boxCount = newBoxes.length;
+  const planParts: string[] = [];
+  if (planCount > 0) planParts.push(`${planCount} import${planCount !== 1 ? "s" : ""}`);
+  if (boxCount > 0) planParts.push(`${boxCount} new box${boxCount !== 1 ? "es" : ""}`);
+  if (planCount > 0) planParts.push("1 rule each");
   steps.push({
     t: step++ * STEP_MS,
     verb: "plan",
-    detail: `${planCount} import${planCount !== 1 ? "s" : ""}, 1 rule each`,
+    detail: planParts.join(", "),
     tone: "muted",
     coins: coinsAccum += coinsPerStep,
   });
@@ -74,6 +81,20 @@ export function simulateRun(state: State, dispatch: (a: Action) => void): () => 
     tone: "muted",
     coins: coinsAccum += coinsPerStep,
   });
+
+  // Steps for each new box: write __init__.py and dispatch runLayers
+  const root = state.graph?.root_package ?? "app";
+  for (const box of newBoxes) {
+    const boxStepIndex = step++;
+    steps.push({
+      t: boxStepIndex * STEP_MS,
+      verb: "write",
+      detail: `${root}/${box.id}/__init__.py`,
+      suf: "+1",
+      tone: "obeys",
+      coins: coinsAccum += coinsPerStep,
+    });
+  }
 
   // For each row: write, edit, run pytest, then runViolations
   for (let i = 0; i < rows.length; i++) {
@@ -126,8 +147,12 @@ export function simulateRun(state: State, dispatch: (a: Action) => void): () => 
 
   const totalDuration = step * STEP_MS;
 
+  // Index of the first new-box step (after explore step at index 2)
+  const newBoxStepStart = 3;
+
   // Schedule log lines and violations
-  for (const s of steps) {
+  for (let si = 0; si < steps.length; si++) {
+    const s = steps[si];
     const logLine = {
       t: clockStr(s.t),
       verb: s.verb,
@@ -138,6 +163,20 @@ export function simulateRun(state: State, dispatch: (a: Action) => void): () => 
 
     later(() => {
       dispatch({ type: "runLog", line: logLine });
+
+      // After each new-box write step, dispatch runLayers with the new box added
+      if (si >= newBoxStepStart && si < newBoxStepStart + newBoxes.length) {
+        const boxesSoFar = newBoxes.slice(0, si - newBoxStepStart + 1);
+        const extraLayers = boxesSoFar.map((b) => ({
+          id: b.id,
+          module: `${root}.${b.id}`,
+          files: 2,
+        }));
+        dispatch({
+          type: "runLayers",
+          layers: [...(state.graph?.layers ?? []), ...extraLayers],
+        });
+      }
 
       // After each pytest "run" that fixes a row, dispatch runViolations
       if (s.fixRowIndex !== undefined) {
@@ -167,6 +206,7 @@ export function simulateRun(state: State, dispatch: (a: Action) => void): () => 
       type: "runFinished",
       coins: totalCoins,
       durationMs: totalDuration,
+      boxesMissing: [],
     });
   }, totalDuration + STEP_MS);
 

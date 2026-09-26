@@ -9,9 +9,18 @@ interface ViewState {
   zoom: number;
 }
 
+/** NEW on a drawn box that will become a package; CREATED once Bob built it (DESIGN.md §6, §12). */
+export interface BoxTag {
+  name: string;
+  rect: Rect;
+  kind: "new" | "created";
+  visible: boolean;
+}
+
 interface Props {
   state: State;
   boxRects: Record<string, Rect>;
+  tags?: BoxTag[];
   view: ViewState;
   containerRect: DOMRect | null;
   onHover: (edge: string | null) => void;
@@ -24,7 +33,7 @@ interface Props {
  * arrows, pills and box subtitles pan and zoom exactly like the drawing.
  * The SVG itself ignores the pointer; only the 18px hit paths catch it.
  */
-export function ViolationOverlay({ state, boxRects, view, containerRect, onHover }: Props) {
+export function ViolationOverlay({ state, boxRects, tags = [], view, containerRect, onHover }: Props) {
   if (!containerRect) return null;
 
   const counts = edgeCounts(state);
@@ -56,10 +65,43 @@ export function ViolationOverlay({ state, boxRects, view, containerRect, onHover
               x={rect.x + rect.width / 2}
               y={rect.y + rect.height - 18}
               textAnchor="middle"
-              style={{ fontFamily: "var(--font-mono)", fontSize: 11, fill: "var(--muted)" }}
+              style={{ fontFamily: "var(--font-mono)", fontSize: 12, fill: "var(--muted)" }}
             >
               {layer.module} · {layer.files} {layer.files === 1 ? "file" : "files"}
             </text>
+          );
+        })}
+
+        {/* NEW / CREATED tags straddle the box's top-right corner */}
+        {tags.map((t) => {
+          const created = t.kind === "created";
+          const w = created ? 84 : 52;
+          return (
+            <g key={`tag-${t.name}`} style={{ opacity: t.visible ? 1 : 0, transition: "opacity 400ms ease" }}>
+              <rect
+                x={t.rect.x + t.rect.width - w + 10}
+                y={t.rect.y - 12}
+                width={w}
+                height={24}
+                rx={12}
+                strokeDasharray={created ? undefined : "3 2.5"}
+                style={{
+                  fill: created ? "var(--obeys-bg)" : "var(--hover)",
+                  stroke: created ? "transparent" : "var(--muted)",
+                  strokeWidth: 1,
+                  transition: "fill 240ms var(--ease-out), stroke 240ms var(--ease-out)",
+                }}
+              />
+              <text
+                x={t.rect.x + t.rect.width - w / 2 + 10}
+                y={t.rect.y + 4}
+                textAnchor="middle"
+                letterSpacing="0.6"
+                style={{ fontFamily: "var(--font-ui)", fontSize: 12, fontWeight: 500, fill: created ? "var(--obeys)" : "var(--muted)" }}
+              >
+                {created ? "CREATED" : "NEW"}
+              </text>
+            </g>
           );
         })}
 
@@ -112,7 +154,7 @@ export function ViolationOverlay({ state, boxRects, view, containerRect, onHover
                 x={g.mid.x}
                 y={g.mid.y + 4}
                 textAnchor="middle"
-                style={{ fontFamily: "var(--font-ui)", fontSize: 12, fontWeight: 500, fill: "var(--violation)" }}
+                style={{ fontFamily: "var(--font-ui)", fontSize: 13, fontWeight: 500, fill: "var(--violation)" }}
               >
                 {label}
               </text>

@@ -4,9 +4,10 @@ Any change here must be mirrored in frontend/src/types.ts.
 """
 from __future__ import annotations
 
+import keyword
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
 
 class ImportDetail(BaseModel):
@@ -40,9 +41,28 @@ class Arrow(BaseModel):          # a drawn arrow = an ALLOWED dependency
     target: str          # Layer.id
 
 
+class NewBox(BaseModel):         # a box drawn for a package that does not exist yet
+    # becomes the directory <root>/<id>/, so only lowercase Python package names
+    id: str = Field(pattern=r"^[a-z_][a-z0-9_]*$", max_length=40)
+    intent: str = Field(default="", max_length=200)  # text written in the box, under its name
+
+    @field_validator("id")
+    @classmethod
+    def _not_a_keyword(cls, v: str) -> str:
+        if keyword.iskeyword(v):
+            raise ValueError(f"{v!r} is a Python keyword")
+        return v
+
+    @field_validator("intent")
+    @classmethod
+    def _one_line(cls, v: str) -> str:
+        return " ".join(v.split())
+
+
 class Drawing(BaseModel):
     layers: list[str]    # Layer ids drawn as boxes
-    arrows: list[Arrow]
+    arrows: list[Arrow]  # may also start or end at a NewBox id
+    new_boxes: list[NewBox] = []
 
 
 class Violation(BaseModel):      # a real Dependency with no matching Arrow

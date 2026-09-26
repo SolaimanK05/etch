@@ -1,4 +1,4 @@
-import type { ArchGraph, Drawing, Violation } from "../types";
+import type { ArchGraph, Drawing, NewBox, Violation } from "../types";
 
 export type Phase = "empty" | "scanning" | "idle" | "running" | "done" | "etched" | "error";
 export type RowStatus = "open" | "queued" | "fixing" | "fixed";
@@ -42,6 +42,7 @@ export interface State {
   startedAt: number | null;
   elapsedMs: number;
   coins: number | null;
+  builtBoxes: NewBox[];   // drawn boxes Bob turned into packages during the last run
   toast: Toast | null;
   written: string[];
   importlinter: string;
@@ -59,7 +60,8 @@ export type Action =
   | { type: "runStarted"; now: number }
   | { type: "runLog"; line: LogLine }
   | { type: "runViolations"; violations: Violation[] }
-  | { type: "runFinished"; coins: number; durationMs: number }
+  | { type: "runLayers"; layers: import("../types").Layer[] }
+  | { type: "runFinished"; coins: number; durationMs: number; boxesMissing?: string[] }
   | { type: "runFailed"; error: string }
   | { type: "tick"; now: number }
   | { type: "reset" };
@@ -69,7 +71,7 @@ export const initialState: State = {
   scanning: false,
   repoPath: "demo-app",
   graph: null,
-  drawing: { layers: [], arrows: [] },
+  drawing: { layers: [], arrows: [], new_boxes: [] },
   rows: [],
   rowsEpoch: 0,
   hover: null,
@@ -78,6 +80,7 @@ export const initialState: State = {
   startedAt: null,
   elapsedMs: 0,
   coins: null,
+  builtBoxes: [],
   toast: null,
   written: [],
   importlinter: "",
@@ -118,9 +121,19 @@ export function openCount(state: State): number {
   return state.rows.filter((r) => r.status !== "fixed").length;
 }
 
+/** Number of new boxes still waiting to be built. */
+export function newBoxCount(state: State): number {
+  return state.drawing.new_boxes.length;
+}
+
+/** Total work for Bob: open imports + pending new boxes. */
+export function workCount(state: State): number {
+  return openCount(state) + newBoxCount(state);
+}
+
 export function canEtch(state: State): boolean {
   if (state.phase === "done") return true;
-  if (state.phase === "idle" && state.graph !== null && openCount(state) === 0) return true;
+  if (state.phase === "idle" && state.graph !== null && openCount(state) === 0 && newBoxCount(state) === 0) return true;
   return false;
 }
 
@@ -181,6 +194,7 @@ export function reducer(state: State, action: Action): State {
         branch: "main",
         log: [],
         coins: null,
+        builtBoxes: [],
         written: [],
         importlinter: "",
         error: null,
@@ -254,6 +268,7 @@ export function reducer(state: State, action: Action): State {
         rows: startedRows,
         log: [],
         coins: null,
+        builtBoxes: [],
         startedAt: action.now,
         elapsedMs: 0,
       };
@@ -317,9 +332,36 @@ export function reducer(state: State, action: Action): State {
       return { ...state, rows: finalRows, toast };
     }
 
+    case "runLayers": {
+      if (state.graph === null) return state;
+      const done = new Set(state.builtBoxes.map((b) => b.id));
+      const nowBuilt = state.drawing.new_boxes.filter(
+        (b) => !done.has(b.id) && action.layers.some((l) => l.id === b.id && l.files >= 2),
+      );
+      return {
+        ...state,
+        graph: { ...state.graph, layers: action.layers },
+        builtBoxes: nowBuilt.length ? [...state.builtBoxes, ...nowBuilt] : state.builtBoxes,
+      };
+    }
+
     case "runFinished": {
       const openRows = state.rows.filter((r) => r.status !== "fixed");
+      const boxesMissing = action.boxesMissing ?? [];
       if (openRows.length === 0) {
+        // No open rows: check missing boxes
+        if (boxesMissing.length > 0) {
+          const names = boxesMissing.join(", ");
+          const n = boxesMissing.length;
+          return {
+            ...state,
+            phase: "error",
+            error: `Bob didn't create the ${names} package${n > 1 ? "s" : ""}`,
+            coins: action.coins,
+            elapsedMs: action.durationMs,
+            startedAt: null,
+          };
+        }
         return {
           ...state,
           phase: "done",

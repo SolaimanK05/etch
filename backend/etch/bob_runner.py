@@ -153,7 +153,8 @@ def build_prompt(
 ) -> str:
     """Build the Bob agent prompt describing the violations to fix."""
     arrows_lines = "\n".join(f"- {a.source} → {a.target}" for a in drawing.arrows)
-    drawn_layers = ", ".join(drawing.layers)
+    # The forbidden-imports sentence lists real layers AND new box ids
+    drawn = ", ".join(drawing.layers + [b.id for b in drawing.new_boxes])
 
     violation_blocks = []
     n = 1
@@ -165,21 +166,65 @@ def build_prompt(
             n += 1
     violations_text = "\n".join(violation_blocks)
 
-    return (
-        f"You are refactoring the Python package `{root_package}` in this workspace so that its imports obey an architecture drawing.\n"
-        f"\n"
-        f"Allowed dependencies between its top-level packages (an arrow means \"may import\"):\n"
-        f"{arrows_lines}\n"
-        f"Every other import between {drawn_layers} is forbidden. Going through an allowed package is fine (if a → b and b → c are drawn, a may call b which calls c).\n"
-        f"\n"
-        f"These imports break the drawing. Fix every one of them:\n"
-        f"{violations_text}\n"
-        f"\n"
-        f"How to fix:\n"
-        f"- Route each call through a package the drawing allows: add or reuse a function in an allowed package, or pass the data in as an argument. Moving the import inside a function or using importlib does not count; Etch scans those too.\n"
-        f"- Keep every public function's name, signature and behaviour exactly as they are. The tests call them.\n"
-        f"- Do not modify tests/, .importlinter, .etch/ or anything outside {root_package}/. Do not install packages. Do not run git.\n"
-        f"- When your edits are done, run: {python} -m pytest -q\n"
-        f"  It must pass. If it fails, fix the code (never the tests) and run it again.\n"
-        f"- Stop when every listed import is gone and the tests pass. Reply with one line saying what you moved."
-    )
+    # New-boxes block (only when there are new boxes)
+    new_boxes_block = ""
+    if drawing.new_boxes:
+        lines = ["Create these new packages the architect drew:"]
+        # Build a set of arrow pairs for lookup, preserving drawing order
+        for i, box in enumerate(drawing.new_boxes, start=1):
+            box_arrows = [
+                f"{a.source} → {a.target}"
+                for a in drawing.arrows
+                if a.source == box.id or a.target == box.id
+            ]
+            arrows_str = ", ".join(box_arrows) if box_arrows else "none"
+            intent_str = box.intent if box.intent else "not described; infer it from the arrows and the code"
+            lines.append(
+                f"{i}. {root_package}.{box.id}  (create {root_package}/{box.id}/__init__.py)\n"
+                f"   What belongs there: {intent_str}\n"
+                f"   Arrows: {arrows_str}"
+            )
+        lines.append(
+            "Move the code that belongs there out of the existing packages (move, don't copy), "
+            "then update every import of it, including import lines in tests/. "
+            "Leave no module behind that only re-exports the moved code."
+        )
+        new_boxes_block = "\n".join(lines)
+
+    # Violations block (only when there are violations)
+    violations_block = ""
+    if violations:
+        violations_block = (
+            f"These imports break the drawing. Fix every one of them:\n"
+            f"{violations_text}"
+        )
+
+    # Build "stop when" suffix
+    new_boxes_suffix = ", every new package exists with the code that belongs there" if drawing.new_boxes else ""
+    stop_line = f"Stop when every listed import is gone{new_boxes_suffix} and the tests pass. Reply with one line saying what you moved."
+
+    # Assemble the prompt
+    parts = [
+        f"You are refactoring the Python package `{root_package}` in this workspace so that its imports obey an architecture drawing.",
+        "",
+        "Allowed dependencies between its top-level packages (an arrow means \"may import\"):",
+        arrows_lines,
+        f"Every other import between {drawn} is forbidden. Going through an allowed package is fine (if a → b and b → c are drawn, a may call b which calls c).",
+    ]
+    if new_boxes_block:
+        parts.append("")
+        parts.append(new_boxes_block)
+    if violations_block:
+        parts.append("")
+        parts.append(violations_block)
+    parts.extend([
+        "",
+        "How to fix:",
+        "- Route each call through a package the drawing allows: add or reuse a function in an allowed package, or pass the data in as an argument. Moving the import inside a function or using importlib does not count; Etch scans those too.",
+        "- Keep every public function's name, signature and behaviour exactly as they are. The tests call them.",
+        f"- Do not modify tests/ (except import lines that point at code you moved), .importlinter, .etch/ or anything outside {root_package}/. Do not install packages. Do not run git.",
+        f"- When your edits are done, run: {python} -m pytest -q",
+        "  It must pass. If it fails, fix the code (never the tests) and run it again.",
+        f"- {stop_line}",
+    ])
+    return "\n".join(parts)

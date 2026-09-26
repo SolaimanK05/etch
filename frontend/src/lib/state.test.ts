@@ -6,10 +6,12 @@ import {
   edgeKey,
   initialState,
   knownEdges,
+  newBoxCount,
   openCount,
   progress,
   reducer,
   rowsFromViolations,
+  workCount,
   type Action,
   type State,
 } from "./state";
@@ -28,6 +30,7 @@ const DRAWING: Drawing = {
     { source: "services", target: "db" },
     { source: "services", target: "notifications" },
   ],
+  new_boxes: [],
 };
 
 const imp = (file: string, line: number, code = "import x") => ({ importer: "m", imported: "n", file, line, code });
@@ -226,5 +229,99 @@ describe("Etch it", () => {
 
   it("reset returns to the first-run screen", () => {
     expect(reducer(idleWithViolations(), { type: "reset" })).toEqual(initialState);
+  });
+});
+
+// ---------- Task 8a: draw a box = new package ----------
+
+describe("new boxes", () => {
+  const WITH_BOX: Drawing = {
+    ...DRAWING,
+    arrows: [...DRAWING.arrows, { source: "services", target: "pricing" }],
+    new_boxes: [{ id: "pricing", intent: "discount math, no I/O" }],
+  };
+  const idleWithBox = (violations: Violation[] = V) =>
+    run([
+      { type: "scanSucceeded", graph: GRAPH, drawing: DRAWING },
+      { type: "drawingChanged", drawing: WITH_BOX },
+      { type: "checkSucceeded", violations },
+    ]);
+
+  it("the initial drawing has no new boxes", () => {
+    expect(initialState.drawing).toEqual({ layers: [], arrows: [], new_boxes: [] });
+  });
+
+  it("a pending box is work for Bob on top of the broken imports", () => {
+    const s = idleWithBox();
+    expect(openCount(s)).toBe(3);
+    expect(newBoxCount(s)).toBe(1);
+    expect(workCount(s)).toBe(4);
+    expect(workCount(idleWithViolations())).toBe(3);
+  });
+
+  it("Etch it stays locked while a drawn box is not built, even at 0 violations", () => {
+    const s = idleWithBox([]);
+    expect(openCount(s)).toBe(0);
+    expect(workCount(s)).toBe(1);
+    expect(canEtch(s)).toBe(false);
+  });
+
+  it("runLayers swaps in the new package list mid-run", () => {
+    const layers = [...GRAPH.layers, { id: "pricing", module: "shop.pricing", files: 2 }];
+    const s = run([{ type: "runStarted", now: 0 }, { type: "runLayers", layers }], idleWithBox());
+    expect(s.graph!.layers.map((l) => l.id)).toEqual(["api", "db", "notifications", "services", "pricing"]);
+    expect(s.graph!.root_package).toBe("shop");
+    expect(s.phase).toBe("running");
+    // the rail shows it as created from here on; a new run or scan starts clean
+    expect(s.builtBoxes).toEqual([{ id: "pricing", intent: "discount math, no I/O" }]);
+    expect(reducer(s, { type: "runLayers", layers }).builtBoxes).toHaveLength(1);
+    expect(reducer(s, { type: "runStarted", now: 1 }).builtBoxes).toEqual([]);
+  });
+
+  it("a run that leaves a box unbuilt ends in error, never in done", () => {
+    const s = run(
+      [
+        { type: "runStarted", now: 0 },
+        { type: "runViolations", violations: [] },
+        { type: "runFinished", coins: 0.4, durationMs: 9000, boxesMissing: ["pricing"] },
+      ],
+      idleWithBox(),
+    );
+    expect(s.phase).toBe("error");
+    expect(s.error).toBe("Bob didn't create the pricing package");
+    expect(s.coins).toBe(0.4);
+  });
+
+  it("names every missing box; open imports are reported first", () => {
+    const many = run(
+      [
+        { type: "runStarted", now: 0 },
+        { type: "runViolations", violations: [] },
+        { type: "runFinished", coins: 0.4, durationMs: 1, boxesMissing: ["pricing", "cache"] },
+      ],
+      idleWithBox(),
+    );
+    expect(many.error).toBe("Bob didn't create the pricing, cache packages");
+    const both = run(
+      [
+        { type: "runStarted", now: 0 },
+        { type: "runViolations", violations: V.slice(2) },
+        { type: "runFinished", coins: 0.4, durationMs: 1, boxesMissing: ["pricing"] },
+      ],
+      idleWithBox(),
+    );
+    expect(both.error).toBe("1 import still breaks the drawing");
+  });
+
+  it("a run that built every box lands in done", () => {
+    const s = run(
+      [
+        { type: "runStarted", now: 0 },
+        { type: "runViolations", violations: [] },
+        { type: "runFinished", coins: 0.4, durationMs: 1, boxesMissing: [] },
+      ],
+      idleWithBox(),
+    );
+    expect(s.phase).toBe("done");
   });
 });

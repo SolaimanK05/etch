@@ -103,6 +103,9 @@ def contracts(req: CheckRequest) -> ContractsResponse:
 def etch_it(req: EtchItRequest) -> EtchItResponse:
     repo = resolve_repo(req.repo_path)
     root = root_of(req, repo)
+    if req.drawing.new_boxes:
+        ids = ", ".join(b.id for b in req.drawing.new_boxes)
+        raise HTTPException(400, detail=f"Make it so first: {ids} not built yet")
     text = compile_contracts(req.drawing, root)
     (repo / ".importlinter").write_text(text, encoding="utf-8", newline="\n")
     written = [".importlinter"]
@@ -131,16 +134,27 @@ def open_pr(req: PrRequest) -> PrResponse:
     return PrResponse(branch="etch/make-it-so", commit=sha, pushed=pushed, url=url)
 
 
+def _built(graph, box_id: str) -> bool:
+    """Return True when *box_id* is a layer with files >= 2 (an __init__.py plus at least one module)."""
+    for layer in graph.layers:
+        if layer.id == box_id and layer.files >= 2:
+            return True
+    return False
+
+
 def make_it_so_stream(repo: Path, root: str, drawing, max_cost: float):
     """Synchronous generator that runs Bob and yields SSE data lines.
 
     Stream protocol (one JSON object per ``data:`` line):
       {"kind": "violations", "violations": [...]}
+      {"kind": "layers", "layers": [...]}
       {"kind": "bob", "event": {...}}
       {"kind": "tests", "ok": bool, "summary": "..."}
-      {"kind": "done", "coins": ..., "duration_ms": ..., "violations_left": ...}
+      {"kind": "done", "coins": ..., "duration_ms": ..., "violations_left": ..., "boxes_missing": [...]}
       {"kind": "error", "message": "..."}
     """
+    import re
+
     def sse(obj: dict) -> str:
         return f"data: {json.dumps(obj)}\n\n"
 
@@ -151,17 +165,23 @@ def make_it_so_stream(repo: Path, root: str, drawing, max_cost: float):
         yield sse({"kind": "error", "message": str(exc)})
         return
 
+    # Compute pending new boxes (those not yet built)
+    pending = [b for b in drawing.new_boxes if not _built(graph, b.id)]
+
     violations = find_violations(graph, drawing)
-    if not violations:
+    if not violations and not pending:
         yield sse({"kind": "error", "message": "nothing to fix: the code already obeys the drawing"})
         return
 
-    # 2. Emit initial violations
+    # 2. Always emit initial violations
     last_violations_json = json.dumps([v.model_dump() for v in violations])
     yield sse({"kind": "violations", "violations": [v.model_dump() for v in violations]})
 
-    # 3. Run Bob
-    prompt = build_prompt(violations, drawing, root)
+    # Track layer ids for change detection
+    last_layer_ids = sorted(l.id for l in graph.layers)
+
+    # 3. Run Bob (with only pending new boxes in the prompt)
+    prompt = build_prompt(violations, drawing.model_copy(update={"new_boxes": pending}), root)
     result_event = None
 
     for ev in run_bob(prompt, repo, max_cost):
@@ -178,6 +198,10 @@ def make_it_so_stream(repo: Path, root: str, drawing, max_cost: float):
         if ev.type == "tool_result":
             try:
                 new_graph = scan_repo(repo, root)
+                new_layer_ids = sorted(l.id for l in new_graph.layers)
+                if new_layer_ids != last_layer_ids:
+                    yield sse({"kind": "layers", "layers": [l.model_dump() for l in new_graph.layers]})
+                    last_layer_ids = new_layer_ids
                 new_violations = find_violations(new_graph, drawing)
                 new_json = json.dumps([v.model_dump() for v in new_violations])
                 if new_json != last_violations_json:
@@ -194,6 +218,10 @@ def make_it_so_stream(repo: Path, root: str, drawing, max_cost: float):
     # 5. Final rescan
     try:
         final_graph = scan_repo(repo, root)
+        final_layer_ids = sorted(l.id for l in final_graph.layers)
+        if final_layer_ids != last_layer_ids:
+            yield sse({"kind": "layers", "layers": [l.model_dump() for l in final_graph.layers]})
+            last_layer_ids = final_layer_ids
         final_violations = find_violations(final_graph, drawing)
         final_json = json.dumps([v.model_dump() for v in final_violations])
         if final_json != last_violations_json:
@@ -215,7 +243,6 @@ def make_it_so_stream(repo: Path, root: str, drawing, max_cost: float):
     stdout_lines = [l for l in test_result.stdout.splitlines() if l.strip()]
     summary_raw = stdout_lines[-1] if stdout_lines else ""
     # Remove trailing timing like " in 0.05s"
-    import re
     summary = re.sub(r"\s+in\s+[\d.]+s$", "", summary_raw)
     yield sse({"kind": "tests", "ok": test_result.returncode == 0, "summary": summary})
 
@@ -223,7 +250,8 @@ def make_it_so_stream(repo: Path, root: str, drawing, max_cost: float):
     stats = result_event.data.get("stats", {})
     coins = stats.get("session_costs", 0)
     duration_ms = stats.get("duration_ms", 0)
-    yield sse({"kind": "done", "coins": coins, "duration_ms": duration_ms, "violations_left": violations_left})
+    boxes_missing = [b.id for b in pending if not _built(final_graph, b.id)]
+    yield sse({"kind": "done", "coins": coins, "duration_ms": duration_ms, "violations_left": violations_left, "boxes_missing": boxes_missing})
 
 
 @app.post("/api/make-it-so")

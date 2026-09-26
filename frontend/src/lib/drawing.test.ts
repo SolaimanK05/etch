@@ -4,12 +4,16 @@ import {
   BOX_HEIGHT,
   BOX_WIDTH,
   FONT_NUNITO,
+  adoptionPlan,
   boxId,
+  boxSkeleton,
   drawingFromElements,
+  isPackageName,
   drawingOfGraph,
   layerOfBox,
   layoutLayers,
   notesFromElements,
+  rebindForAdoption,
   sceneSkeleton,
 } from "./drawing";
 
@@ -57,7 +61,7 @@ describe("layoutLayers", () => {
 describe("sceneSkeleton", () => {
   const scene = sceneSkeleton(DEMO) as Array<Record<string, any>>;
 
-  it("draws one labelled Nunito rectangle per layer at the layout position", () => {
+  it("draws one clean, white, 10px-rounded, labelled Nunito rectangle per layer at the layout position", () => {
     const api = scene.find((e) => e.id === "etch-box-api")!;
     expect(api).toMatchObject({
       type: "rectangle",
@@ -66,8 +70,11 @@ describe("sceneSkeleton", () => {
       width: BOX_WIDTH,
       height: BOX_HEIGHT,
       strokeColor: "#111111",
-      backgroundColor: "transparent",
-      label: { text: "api", fontSize: 22, fontFamily: FONT_NUNITO },
+      backgroundColor: "#ffffff",
+      fillStyle: "solid",
+      roughness: 0,
+      roundness: { type: 3, value: 10 },
+      label: { text: "api", fontSize: 24, fontFamily: FONT_NUNITO },
     });
     expect(FONT_NUNITO).toBe(6);
     expect(scene.filter((e) => e.type === "rectangle")).toHaveLength(4);
@@ -80,6 +87,7 @@ describe("sceneSkeleton", () => {
     expect(apiDb.start).toEqual({ id: "etch-box-api" });
     expect(apiDb.end).toEqual({ id: "etch-box-db" });
     expect(apiDb.points).toHaveLength(2);
+    expect(apiDb.roughness).toBe(0);
     // services <-> db exist in both directions
     expect(arrows.find((e) => e.id === "etch-arrow-services-db")!.points).toHaveLength(3);
     expect(arrows.find((e) => e.id === "etch-arrow-db-services")!.points).toHaveLength(3);
@@ -121,6 +129,7 @@ describe("drawingFromElements", () => {
     expect(drawingFromElements(elements)).toEqual({
       layers: ["api", "db"],
       arrows: [{ source: "api", target: "db" }],
+      new_boxes: [],
     });
   });
 });
@@ -163,5 +172,137 @@ describe("notesFromElements", () => {
       { text: "all business logic goes there", source: "api", target: "services" },
       { text: "two lines", source: null, target: null },
     ]);
+  });
+});
+
+// ---------- Task 8a: draw a box = new package ----------
+
+const bind = (elementId: string) => ({ elementId, focus: 0.1, gap: 4 });
+
+// services and db are real (scanned) boxes; the user drew a "pricing" box under them.
+const SCENE = [
+  { id: "etch-box-services", type: "rectangle" },
+  { id: "etch-box-db", type: "rectangle" },
+  { id: "r1", type: "rectangle" },
+  // Excalidraw keeps what the user typed in originalText; text is the wrapped version
+  { id: "t1", type: "text", containerId: "r1", text: "pricing\ndiscount math,\nno I/O", originalText: "pricing\ndiscount math, no I/O" },
+  { id: "a1", type: "arrow", startBinding: bind("etch-box-services"), endBinding: bind("r1") },
+  { id: "a1-lbl", type: "text", containerId: "a1", text: "pure functions only" },
+  { id: "a2", type: "arrow", startBinding: bind("etch-box-db"), endBinding: bind("r1") },
+  // not new boxes: uppercase name, no arrow, existing package name, duplicate name, deleted
+  { id: "r2", type: "rectangle" },
+  { id: "t2", type: "text", containerId: "r2", text: "Cache" },
+  { id: "a3", type: "arrow", startBinding: bind("etch-box-db"), endBinding: bind("r2") },
+  { id: "r3", type: "rectangle" },
+  { id: "t3", type: "text", containerId: "r3", text: "queue" },
+  { id: "r4", type: "rectangle" },
+  { id: "t4", type: "text", containerId: "r4", text: "db" },
+  { id: "a4", type: "arrow", startBinding: bind("etch-box-services"), endBinding: bind("r4") },
+  { id: "r5", type: "rectangle" },
+  { id: "t5", type: "text", containerId: "r5", text: "pricing" },
+  { id: "a5", type: "arrow", startBinding: bind("etch-box-services"), endBinding: bind("r5") },
+  { id: "r6", type: "rectangle", isDeleted: true },
+  { id: "t6", type: "text", containerId: "r6", text: "search", isDeleted: true },
+  { id: "a6", type: "arrow", startBinding: bind("etch-box-services"), endBinding: bind("r6") },
+];
+
+describe("isPackageName", () => {
+  it("accepts lowercase Python package names only", () => {
+    for (const ok of ["pricing", "_util2", "a"]) expect(isPackageName(ok)).toBe(true);
+    for (const bad of ["Pricing", "9lives", "a-b", "a b", "", "class", "import", "a".repeat(41)]) {
+      expect(isPackageName(bad)).toBe(false);
+    }
+  });
+});
+
+describe("new boxes in drawingFromElements", () => {
+  it("a named box with an arrow to a code box is a new package; its arrows are rules", () => {
+    expect(drawingFromElements(SCENE)).toEqual({
+      layers: ["db", "services"],
+      arrows: [
+        { source: "db", target: "pricing" },
+        { source: "services", target: "pricing" },
+      ],
+      new_boxes: [{ id: "pricing", intent: "discount math, no I/O" }],
+    });
+  });
+
+  it("the first line is the name, the rest (folded to one line) is the intent", () => {
+    const scene = [
+      { id: "etch-box-api", type: "rectangle" },
+      { id: "r", type: "rectangle" },
+      { id: "t", type: "text", containerId: "r", text: "  audit  \n\n  who did\n what  " },
+      { id: "a", type: "arrow", startBinding: bind("r"), endBinding: bind("etch-box-api") },
+    ];
+    expect(drawingFromElements(scene)).toEqual({
+      layers: ["api"],
+      arrows: [{ source: "audit", target: "api" }],
+      new_boxes: [{ id: "audit", intent: "who did what" }],
+    });
+  });
+});
+
+describe("notes around new boxes", () => {
+  it("a new box's own text is not a note; rejected boxes' text still is", () => {
+    expect(notesFromElements(SCENE)).toEqual([
+      { text: "pure functions only", source: "services", target: "pricing" },
+      { text: "Cache", source: null, target: null },
+      { text: "queue", source: null, target: null },
+      { text: "db", source: null, target: null },
+      { text: "pricing", source: null, target: null },
+    ]);
+  });
+
+  it("a built box keeps its intent as a note named after the package", () => {
+    const scene = [
+      { id: "etch-box-api", type: "rectangle" },
+      { id: "etch-box-pricing", type: "rectangle", customData: { etchIntent: "discount math, no I/O" } },
+      { id: "lbl", type: "text", containerId: "etch-box-pricing", text: "pricing" },
+      { id: "n", type: "text", text: "later: tax rules" },
+    ];
+    expect(notesFromElements(scene)).toEqual([
+      { text: "pricing: discount math, no I/O", source: null, target: null },
+      { text: "later: tax rules", source: null, target: null },
+    ]);
+  });
+});
+
+describe("adopting a new box once Bob built the package", () => {
+  it("plans one adoption per new box whose package now exists", () => {
+    expect(adoptionPlan(SCENE, ["db", "pricing", "services"])).toEqual([
+      { name: "pricing", rectId: "r1", textId: "t1", intent: "discount math, no I/O", arrowIds: ["a1", "a2"] },
+    ]);
+    expect(adoptionPlan(SCENE, ["db", "services"])).toEqual([]);
+  });
+
+  it("retires the drawn box and its text and rebinds its arrows to the code box, without mutating", () => {
+    const plan = adoptionPlan(SCENE, ["db", "pricing", "services"]);
+    const before = JSON.stringify(SCENE);
+    const out = rebindForAdoption(SCENE, plan) as Array<Record<string, any>>;
+    expect(JSON.stringify(SCENE)).toBe(before);
+    expect(out).toHaveLength(SCENE.length);
+    const byId = (id: string) => out.find((e) => e.id === id)!;
+    expect(byId("r1").isDeleted).toBe(true);
+    expect(byId("t1").isDeleted).toBe(true);
+    expect(byId("a1").endBinding).toEqual({ elementId: "etch-box-pricing", focus: 0.1, gap: 4 });
+    expect(byId("a1").startBinding).toEqual(bind("etch-box-services"));
+    expect(byId("a2").endBinding.elementId).toBe("etch-box-pricing");
+    expect(byId("r2")).toBe(SCENE.find((e) => e.id === "r2")); // untouched elements are reused as-is
+  });
+});
+
+describe("boxSkeleton", () => {
+  it("is the code box sceneSkeleton draws, at any position and size", () => {
+    expect(boxSkeleton("pricing", { x: 1, y: 2, width: 300, height: 120 })).toMatchObject({
+      type: "rectangle",
+      id: "etch-box-pricing",
+      x: 1,
+      y: 2,
+      width: 300,
+      height: 120,
+      label: { text: "pricing", fontFamily: FONT_NUNITO },
+    });
+    const api = (sceneSkeleton(DEMO) as Array<Record<string, any>>).find((e) => e.id === "etch-box-api");
+    expect(api).toEqual(boxSkeleton("api", { x: 80, y: 80, width: BOX_WIDTH, height: BOX_HEIGHT }));
   });
 });

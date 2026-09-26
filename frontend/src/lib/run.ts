@@ -2,7 +2,7 @@
  * run.ts — real SSE client for POST /api/make-it-so (task 5).
  */
 
-import type { MakeItSoRequest, Violation } from "../types";
+import type { Layer, MakeItSoRequest, Violation } from "../types";
 import type { Action } from "./state";
 import { parseSse, describeToolUse, describeRunOutput, clock } from "./bobEvents";
 import { stopRun } from "../api";
@@ -67,6 +67,9 @@ export function startRun(req: MakeItSoRequest, dispatch: (a: Action) => void): (
           if (kind === "violations") {
             dispatch({ type: "runViolations", violations: event.violations as Violation[] });
 
+          } else if (kind === "layers") {
+            dispatch({ type: "runLayers", layers: event.layers as Layer[] });
+
           } else if (kind === "bob") {
             const bobEv = event.event as Record<string, unknown>;
             const evType = bobEv.type as string;
@@ -125,6 +128,7 @@ export function startRun(req: MakeItSoRequest, dispatch: (a: Action) => void): (
             const coins = event.coins as number | undefined;
             const duration_ms = event.duration_ms as number | undefined;
             const violations_left = event.violations_left as number | undefined;
+            const boxes_missing = event.boxes_missing as string[] | undefined;
             const elapsed = Date.now() - now;
             const t = clock(elapsed);
             dispatch({
@@ -141,6 +145,7 @@ export function startRun(req: MakeItSoRequest, dispatch: (a: Action) => void): (
               type: "runFinished",
               coins: coins ?? 0,
               durationMs: duration_ms ?? elapsed,
+              boxesMissing: boxes_missing ?? [],
             });
             finishedCleanly = true;
 
