@@ -25,7 +25,7 @@ Differentiator: the only entry where a drawing is both the architecture rule and
 | 4 | Excalidraw canvas + sync | 5 | 4a logic **2.38** + 4b UI **8.74** = **11.12** ⚠️ over (large UI port) |
 | 5 | bob-runner SSE | 3 | **3.79** (runner + stream + stop/undo + SSE client) ⚠️ slightly over |
 | 6 | demo-app + tests + planted violations | 3 | **0.67** (Agent only; Claude removed misleading noqa tags) ✅ |
-| 7 | Bob skill + custom mode generator | 2 | |
+| 7 | Bob skill + custom mode generator | 2 | **3.10** (skill + mode + PR check + sketch/notes + Open PR) ⚠️ over |
 | – | Runtime "Make it so" rehearsals (capped) | 11 | run 1: **0.61** (4/4 fixed, 1:24, tests green, lint-imports 4 kept) ✅ |
 | – | Reserve | 6 | |
 
