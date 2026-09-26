@@ -209,6 +209,7 @@ Serif fonts, handwriting fonts, Inter/Roboto/system-ui, gradients (except the do
 ## 13. Bobcoin highlight (v2)
 
 Live runs learn the cost only from Bob's final `result` event, so never invent a running number.
-- **Running:** amber chip in the rail meta line: coin icon + "max **1** Bobcoin". Chip = height 28, pill, `--working-bg`, mono 14/500 `--working`, numbers 600 `#5C3D00`, 16px coin icon (two concentric circles, stroke 2.2).
+- **Budget picker:** right of Make it so, 46px tall, amber (`--working-bg` / `--working`), "◎ max **1** ⌄", a native `<select>` of 0.25 / 0.5 / 1 / 2 / 3 Bobcoin (default 1, remembered in localStorage as `etch.maxCost`). It becomes `max_cost`; the backend accepts (0, 5].
+- **Running:** amber chip in the rail meta line: coin icon + "max **{cap}** Bobcoin". Chip = height 28, pill, `--working-bg`, mono 14/500 `--working`, numbers 600 `#5C3D00`, 16px coin icon (two concentric circles, stroke 2.2).
 - **Done:** the same chip inline after "…fixed in m:ss for", popping in (`opacity 0→1, scale 0.9→1`, 420ms ease-out) and counting up to `stats.session_costs`.
 - **Top bar:** from `done` on (through `etched`, until the next scan) an amber pill "◎ 0.61 BOBCOIN" (height 26, 12px uppercase, `--working-bg` / `--working`, 13px coin icon) sits left of the count pill.

@@ -1,9 +1,9 @@
 import type { State } from "../lib/state";
-import { openCount, canEtch, progress, workCount, newBoxCount } from "../lib/state";
+import { openCount, canEtch, progress, workCount, newBoxCount, BUDGET_OPTIONS } from "../lib/state";
 import { Rows } from "./Rows";
 import { LogPanel } from "./LogPanel";
 import { CountUp } from "./CountUp";
-import { CoinChip } from "./Coin";
+import { CoinChip, CoinIcon } from "./Coin";
 
 interface RailProps {
   state: State;
@@ -16,6 +16,8 @@ interface RailProps {
   onOpenPr: () => void;
   prPending: boolean;
   prMessage: string | null;
+  maxCost: number;                       // Bobcoin cap for the next run, chosen next to Make it so
+  onMaxCostChange: (value: number) => void;
 }
 
 function pad2(n: number): string {
@@ -36,7 +38,7 @@ function clockStr(ms: number): string {
  *  4. Action slot (92px)
  *  5. Footer (Etch it)
  */
-export function Rail({ state, simulated, onHover, onMakeItSo, onStop, onEtchIt, onUndo, onOpenPr, prPending, prMessage }: RailProps) {
+export function Rail({ state, simulated, onHover, onMakeItSo, onStop, onEtchIt, onUndo, onOpenPr, prPending, prMessage, maxCost, onMaxCostChange }: RailProps) {
   const { phase, rows, drawing, coins, elapsedMs } = state;
   const open = openCount(state);
   const canEtchNow = canEtch(state);
@@ -189,7 +191,7 @@ export function Rail({ state, simulated, onHover, onMakeItSo, onStop, onEtchIt, 
             <span>agent mode</span>
             {/* Live runs learn the cost only from Bob's final result event: show the cap until then */}
             <CoinChip>
-              {coins === null ? <>max <b>1</b> Bobcoin</> : <><b><CountUp target={coins} /></b> of 1 Bobcoin</>}
+              {coins === null ? <>max <b>{maxCost}</b> Bobcoin</> : <><b><CountUp target={coins} /></b> of {maxCost} Bobcoin</>}
             </CoinChip>
           </div>
           {/* Progress bar — motion #14 */}
@@ -271,10 +273,12 @@ export function Rail({ state, simulated, onHover, onMakeItSo, onStop, onEtchIt, 
           display: "flex", flexDirection: "column", gap: 10,
           ...ctaIdle,
         }}>
+          <div style={{ display: "flex", gap: 8 }}>
           <button
             className="press cta"
             onClick={onMakeItSo}
             style={{
+              flexGrow: 1,
               height: 46,
               display: "flex", alignItems: "center", justifyContent: "center",
               gap: 10,
@@ -293,6 +297,8 @@ export function Rail({ state, simulated, onHover, onMakeItSo, onStop, onEtchIt, 
               fontSize: 12, color: "var(--faint)",
             }}>Ctrl ↵</kbd>
           </button>
+          <BudgetPicker value={maxCost} onChange={onMaxCostChange} />
+          </div>
           {phase === "error" ? (
             <button
               className="press ghost"
@@ -413,5 +419,54 @@ export function Rail({ state, simulated, onHover, onMakeItSo, onStop, onEtchIt, 
       </div>
       </div>
     </aside>
+  );
+}
+
+/** Bobcoin cap for the next Make it so (DESIGN.md §13). A native select, styled as an amber chip. */
+function BudgetPicker({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  return (
+    <label
+      className="budget"
+      title="Most Bobcoin this run may spend. Bob stops at the cap."
+      style={{
+        position: "relative",
+        flexShrink: 0,
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+        height: 46,
+        padding: "0 30px 0 12px",
+        borderRadius: "var(--r-control)",
+        background: "var(--working-bg)",
+        color: "var(--working)",
+        font: "500 14px var(--font-mono)",
+        cursor: "pointer",
+      }}
+    >
+      <CoinIcon />
+      <span>max</span>
+      <select
+        aria-label="Maximum Bobcoin for this run"
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        style={{
+          appearance: "none",
+          border: 0,
+          background: "transparent",
+          color: "#5C3D00",
+          font: "600 14px var(--font-mono)",
+          fontVariantNumeric: "tabular-nums",
+          cursor: "pointer",
+          paddingRight: 2,
+        }}
+      >
+        {BUDGET_OPTIONS.map((v) => <option key={v} value={v}>{v}</option>)}
+      </select>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"
+        strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+        style={{ position: "absolute", right: 11, pointerEvents: "none" }}>
+        <path d="M6 9l6 6 6-6" />
+      </svg>
+    </label>
   );
 }

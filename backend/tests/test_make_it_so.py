@@ -114,3 +114,10 @@ def test_stop_is_harmless_when_idle():
     resp = client.post("/api/stop")
     assert resp.status_code == 200
     assert resp.json() == {"stopped": False}
+
+def test_bobcoin_cap_is_bounded_before_bob_starts(demo_copy):
+    # the cap comes from the UI; nonsense values never reach Bob Shell
+    for bad in (0, -1, 10):
+        resp = client.post("/api/make-it-so", json={"repo_path": str(demo_copy), "drawing": INTENDED, "max_cost": bad})
+        assert resp.status_code == 422
+    assert not (demo_copy / ".fake_bob_prompt.txt").exists()

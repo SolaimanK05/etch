@@ -115,7 +115,7 @@ class EtchItResponse(BaseModel):
 
 
 class MakeItSoRequest(CheckRequest):
-    max_cost: float = 1.0
+    max_cost: float = Field(default=1.0, gt=0, le=5)  # Bobcoin cap the user picks in the UI
 
 
 class BobEvent(BaseModel):       # one line of `bob run --format stream-json`

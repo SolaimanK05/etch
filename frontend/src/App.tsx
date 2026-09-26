@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useReducer, useState } from "react";
 import type { Drawing, Note } from "./types";
-import { reducer, initialState } from "./lib/state";
+import { reducer, initialState, BUDGET_OPTIONS } from "./lib/state";
 import { drawingOfGraph } from "./lib/drawing";
 import { scan, check, contracts, etchIt, openPr, undo } from "./api";
 import { startRun } from "./lib/run";
@@ -10,6 +10,7 @@ import { TopBar } from "./components/TopBar";
 import { FirstRun } from "./components/FirstRun";
 import { Canvas } from "./components/Canvas";
 import { Rail } from "./components/Rail";
+import { getItem, setItem } from "./lib/persist";
 
 /** Compare two layer-id sets (both sorted) */
 function layerSetKey(graph: import("./types").ArchGraph | null): string {
@@ -26,6 +27,15 @@ export default function App() {
   const notesRef = useRef<Note[]>([]);
   const [prMessage, setPrMessage] = useState<string | null>(null);
   const [prPending, setPrPending] = useState(false);
+  // Bobcoin cap per run, chosen next to Make it so and remembered in this browser
+  const [maxCost, setMaxCost] = useState<number>(() => {
+    const saved = getItem<number>("etch.maxCost");
+    return typeof saved === "number" && BUDGET_OPTIONS.includes(saved) ? saved : 1;
+  });
+  const handleMaxCostChange = useCallback((v: number) => {
+    setMaxCost(v);
+    setItem("etch.maxCost", v);
+  }, []);
 
   // Determine simulate mode
   const isSimulated = typeof window !== "undefined" &&
@@ -137,7 +147,7 @@ export default function App() {
       repo_path: state.repoPath,
       root_package: state.graph.root_package,
       drawing: state.drawing,
-      max_cost: 1, // hard Bobcoin cap per run; matches "of 1 Bobcoin" in the rail
+      max_cost: maxCost, // Bobcoin cap the user picked; Bob Shell stops at it
     };
 
     if (isSimulated) {
@@ -145,7 +155,7 @@ export default function App() {
     } else {
       cancelRunRef.current = startRun(req, dispatch);
     }
-  }, [state, isSimulated]);
+  }, [state, isSimulated, maxCost]);
 
   const handleStop = useCallback(() => {
     if (cancelRunRef.current) {
@@ -269,6 +279,8 @@ export default function App() {
           onOpenPr={handleOpenPr}
           prPending={prPending}
           prMessage={prMessage}
+          maxCost={maxCost}
+          onMaxCostChange={handleMaxCostChange}
         />
       </div>
     </div>

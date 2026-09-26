@@ -408,3 +408,10 @@ a:hover {
 .coin-pop { animation: coin-pop 420ms var(--ease-out) both; }
 @keyframes coin-pop { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) { .coin-pop { animation: none; } }
+
+/* Bob's live log keeps at least ~4 lines while running and after; the rows scroll instead */
+@media (min-width: 768px) {
+  .app-rail[data-phase="running"] .rail-log,
+  .app-rail[data-phase="done"] .rail-log,
+  .app-rail[data-phase="error"] .rail-log { min-height: 128px !important; }
+}

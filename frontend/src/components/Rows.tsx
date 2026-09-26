@@ -30,6 +30,9 @@ export function Rows({ state, onHover }: RowsProps) {
       flexDirection: "column",
       gap: 0,
       overflowY: "auto",
+      // with a new-box row the list can outgrow the rail: scroll it, never squash Bob's log
+      minHeight: 0,
+      flexShrink: 1,
     }}>
       {boxRows.map((b) => <BoxRow key={`box:${b.id}`} row={b} />)}
       {rows.map((row: Row, i: number) => {

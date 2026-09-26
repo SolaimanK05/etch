@@ -87,6 +87,9 @@ export const initialState: State = {
   error: null,
 };
 
+/** Bobcoin caps offered next to Make it so; the backend accepts (0, 5]. */
+export const BUDGET_OPTIONS = [0.25, 0.5, 1, 2, 3];
+
 export function edgeKey(source: string, target: string): string {
   return `${source}>${target}`;
 }
