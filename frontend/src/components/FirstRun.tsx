@@ -34,9 +34,12 @@ export function FirstRun({ state, onScan }: FirstRunProps) {
       <section
         className="firstrun-left"
         style={{
-          width: 700,
+          // up to 800px so the 56px headline keeps its two lines (Geist needs 658px);
+          // narrower on small desktops; scrolls on short screens
+          width: "min(800px, 58vw)",
           flexShrink: 0,
-          padding: "120px 0 0 112px",
+          overflowY: "auto",
+          padding: "min(120px, 12vh) 24px 40px min(112px, 8vw)",
           boxSizing: "border-box",
           display: "flex",
           flexDirection: "column",
@@ -253,10 +256,12 @@ export function FirstRun({ state, onScan }: FirstRunProps) {
           backgroundColor: "var(--paper)",
         }}
       >
+        {/* Scales to the panel and stays centred at any width (the mock was a fixed 740x844 at 1440px) */}
         <svg
-          width="740"
-          height="844"
+          width="100%"
+          height="100%"
           viewBox="60 60 1000 900"
+          preserveAspectRatio="xMidYMid meet"
           style={{ position: "absolute", inset: 0, opacity: 0.55 }}
         >
           <defs>
