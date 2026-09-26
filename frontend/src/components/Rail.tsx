@@ -11,6 +11,7 @@ interface RailProps {
   onMakeItSo: () => void;
   onStop: () => void;
   onEtchIt: () => void;
+  onUndo: () => void;
 }
 
 function pad2(n: number): string {
@@ -31,7 +32,7 @@ function clockStr(ms: number): string {
  *  4. Action slot (92px)
  *  5. Footer (Etch it)
  */
-export function Rail({ state, simulated, onHover, onMakeItSo, onStop, onEtchIt }: RailProps) {
+export function Rail({ state, simulated, onHover, onMakeItSo, onStop, onEtchIt, onUndo }: RailProps) {
   const { phase, rows, drawing, coins, elapsedMs } = state;
   const open = openCount(state);
   const canEtchNow = canEtch(state);
@@ -270,9 +271,22 @@ export function Rail({ state, simulated, onHover, onMakeItSo, onStop, onEtchIt }
               fontSize: 11, color: "var(--faint)",
             }}>Ctrl ↵</kbd>
           </button>
-          <span style={{ fontSize: 13, lineHeight: 1.5, color: "var(--muted)" }}>
-            IBM Bob refactors on a new branch, reruns your tests, then Etch rescans.
-          </span>
+          {phase === "error" ? (
+            <button
+              className="press ghost"
+              onClick={onUndo}
+              style={{
+                height: 36, padding: "0 14px",
+                border: "1px solid var(--rule)", borderRadius: "var(--r-control)",
+                background: "var(--surface)", color: "var(--body)",
+                font: "500 13px var(--font-ui)", cursor: "pointer",
+              }}
+            >Undo changes</button>
+          ) : (
+            <span style={{ fontSize: 13, lineHeight: 1.5, color: "var(--muted)" }}>
+              IBM Bob refactors on a new branch, reruns your tests, then Etch rescans.
+            </span>
+          )}
         </div>
 
         {/* idle with 0 rows: empty */}

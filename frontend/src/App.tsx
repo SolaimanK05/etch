@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useReducer } from "react";
 import type { Drawing } from "./types";
 import { reducer, initialState } from "./lib/state";
 import { drawingOfGraph } from "./lib/drawing";
-import { scan, check, contracts, etchIt } from "./api";
+import { scan, check, contracts, etchIt, undo } from "./api";
 import { startRun } from "./lib/run";
 import { simulateRun } from "./lib/simulate";
 import type { MakeItSoRequest } from "./types";
@@ -134,6 +134,7 @@ export default function App() {
       repo_path: state.repoPath,
       root_package: state.graph.root_package,
       drawing: state.drawing,
+      max_cost: 1, // hard Bobcoin cap per run; matches "of 1 Bobcoin" in the rail
     };
 
     if (isSimulated) {
@@ -178,6 +179,18 @@ export default function App() {
     }
   }, [state.graph, state.repoPath, state.drawing, isSimulated]);
 
+  const handleUndo = useCallback(async () => {
+    try {
+      await undo(state.repoPath);
+      handleRescan();
+    } catch (err) {
+      dispatch({
+        type: "runFailed",
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }, [state.repoPath, handleRescan]);
+
   // Keyboard shortcut: Ctrl+Enter → Make it so
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
@@ -219,6 +232,7 @@ export default function App() {
           onMakeItSo={handleMakeItSo}
           onStop={handleStop}
           onEtchIt={handleEtchIt}
+          onUndo={handleUndo}
         />
       </div>
     </div>

@@ -304,6 +304,14 @@ export function Canvas({ state, onDrawingChange, onHover }: CanvasProps) {
           </svg>
           code does it anyway
         </span>
+        {/* Only code boxes and arrows between them are rules; everything else is annotation */}
+        <span className="legend-note" title="Boxes come from your code. Anything else you draw is a note.">
+          <svg width="18" height="12" aria-hidden="true">
+            <ellipse cx="9" cy="6" rx="7.5" ry="4.5" fill="none" stroke="var(--faint)" strokeWidth="1.4" strokeDasharray="2 2.5" />
+          </svg>
+          <span className="legend-note-long">anything else is a note</span>
+          <span className="legend-note-short">note</span>
+        </span>
         <span className="legend-hint">
           <span className="legend-hint-hover">Hover a red arrow or a row</span>
           <span className="legend-hint-touch">Tap a red arrow or a row</span>

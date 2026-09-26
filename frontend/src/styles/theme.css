@@ -265,7 +265,7 @@ a:hover {
 /* Canvas legend: bottom-centre, clear of Excalidraw's bottom-left zoom/undo and bottom-right help */
 .canvas-legend {
   position: absolute;
-  left: 50%;
+  left: calc(50% + 28px); /* nudged right: Excalidraw's undo/redo sit bottom-left */
   bottom: 20px;
   transform: translateX(-50%);
   z-index: 4;
@@ -287,7 +287,8 @@ a:hover {
   .legend-hint-hover { display: none; }
   .legend-hint-touch { display: inline; }
 }
-@media (max-width: 1099px) {
+/* The hover hint only fits beside Excalidraw's controls on wide canvases */
+@media (max-width: 1439px) {
   .legend-hint { display: none; }
 }
 @media (max-width: 767px) {
@@ -355,4 +356,12 @@ a:hover {
 }
 @media (hover: none) {
   .kbd-hint { display: none !important; }
+}
+
+/* Legend "note" item: other shapes are annotations, not rules */
+.legend-note { display: flex; align-items: center; gap: 6px; }
+.legend-note-short { display: none; }
+@media (max-width: 767px) {
+  .legend-note-long { display: none; }
+  .legend-note-short { display: inline; }
 }

@@ -35,3 +35,11 @@ export function contracts(req: CheckRequest): Promise<ContractsResponse> {
 export function etchIt(req: CheckRequest): Promise<EtchItResponse> {
   return post<EtchItResponse>("/etch-it", req);
 }
+
+export function stopRun(): Promise<{ stopped: boolean }> {
+  return post<{ stopped: boolean }>("/stop", {});
+}
+
+export function undo(repo_path: string): Promise<{ undone: boolean }> {
+  return post<{ undone: boolean }>("/undo", { repo_path });
+}
