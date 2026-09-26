@@ -171,6 +171,24 @@ def test_make_it_so_reports_a_box_bob_did_not_build(demo_copy, monkeypatch):
     assert events[-1]["boxes_missing"] == ["pricing"]
 
 
+@needs_pristine_demo
+def test_code_in_the_new_packages_init_counts_as_built(demo_copy, monkeypatch):
+    # first live run: Bob put apply_discount straight into shop/pricing/__init__.py
+    monkeypatch.setenv("FAKE_BOB_MODE", "boxinit")
+    events = stream({"repo_path": str(demo_copy), "drawing": DRAW_BOX})
+    layers = next(e for e in events if e["kind"] == "layers")["layers"]
+    assert next(layer for layer in layers if layer["id"] == "pricing")["files"] == 1
+    assert events[-1]["kind"] == "done"
+    assert events[-1]["boxes_missing"] == []
+
+
+@needs_pristine_demo
+def test_an_empty_new_package_is_still_missing(demo_copy, monkeypatch):
+    monkeypatch.setenv("FAKE_BOB_MODE", "emptybox")
+    events = stream({"repo_path": str(demo_copy), "drawing": DRAW_BOX})
+    assert events[-1]["kind"] == "done"
+    assert events[-1]["boxes_missing"] == ["pricing"]
+
 def test_a_pending_box_alone_is_work_for_bob(demo_copy):
     # every real import is drawn, so there are no violations, only the box to build
     allow_all = INTENDED_ARROWS + BOX_ARROWS + [

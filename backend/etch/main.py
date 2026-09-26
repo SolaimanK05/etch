@@ -1,6 +1,7 @@
 """FastAPI application for Etch."""
 from __future__ import annotations
 
+import ast
 import json
 import subprocess
 import sys
@@ -134,12 +135,24 @@ def open_pr(req: PrRequest) -> PrResponse:
     return PrResponse(branch="etch/make-it-so", commit=sha, pushed=pushed, url=url)
 
 
-def _built(graph, box_id: str) -> bool:
-    """Return True when *box_id* is a layer with files >= 2 (an __init__.py plus at least one module)."""
-    for layer in graph.layers:
-        if layer.id == box_id and layer.files >= 2:
-            return True
-    return False
+def _built(graph, box_id: str, repo: Path, root: str) -> bool:
+    """Return True when *box_id* is a real package with code in it.
+
+    Either a module besides ``__init__.py``, or code (a def, class or assignment)
+    in the ``__init__.py`` itself: Bob may put a small package's code right there.
+    """
+    layer = next((l for l in graph.layers if l.id == box_id), None)
+    if layer is None:
+        return False
+    if layer.files >= 2:
+        return True
+    init = repo.joinpath(*root.split("."), box_id, "__init__.py")
+    try:
+        tree = ast.parse(init.read_text(encoding="utf-8"))
+    except (OSError, SyntaxError, ValueError):
+        return False
+    code = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Assign, ast.AnnAssign)
+    return any(isinstance(node, code) for node in tree.body)
 
 
 def make_it_so_stream(repo: Path, root: str, drawing, max_cost: float):
@@ -166,7 +179,7 @@ def make_it_so_stream(repo: Path, root: str, drawing, max_cost: float):
         return
 
     # Compute pending new boxes (those not yet built)
-    pending = [b for b in drawing.new_boxes if not _built(graph, b.id)]
+    pending = [b for b in drawing.new_boxes if not _built(graph, b.id, repo, root)]
 
     violations = find_violations(graph, drawing)
     if not violations and not pending:
@@ -250,7 +263,7 @@ def make_it_so_stream(repo: Path, root: str, drawing, max_cost: float):
     stats = result_event.data.get("stats", {})
     coins = stats.get("session_costs", 0)
     duration_ms = stats.get("duration_ms", 0)
-    boxes_missing = [b.id for b in pending if not _built(final_graph, b.id)]
+    boxes_missing = [b.id for b in pending if not _built(final_graph, b.id, repo, root)]
     yield sse({"kind": "done", "coins": coins, "duration_ms": duration_ms, "violations_left": violations_left, "boxes_missing": boxes_missing})
 
 

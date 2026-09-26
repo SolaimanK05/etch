@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clock, describeRunOutput, describeToolUse, parseSse } from "./bobEvents";
+import { clock, describeRunOutput, describeToolUse, parseSse, relativize } from "./bobEvents";
 
 describe("parseSse", () => {
   it("returns complete data events and keeps the unfinished tail", () => {
@@ -64,5 +64,23 @@ describe("clock", () => {
     expect(clock(0)).toBe("00:00");
     expect(clock(7_900)).toBe("00:07");
     expect(clock(83_000)).toBe("01:23");
+  });
+});
+
+describe("Bob Shell paths and verbs (live run)", () => {
+  it("shows absolute Windows paths from the root package on", () => {
+    expect(relativize("C:\\Users\\u\\etch\\demo-app\\shop\\api\\orders.py", "shop")).toBe("shop/api/orders.py");
+    expect(relativize('type "C:\\Users\\u\\demo-app\\shop\\services\\pricing.py"', "shop"))
+      .toBe('type "shop/services/pricing.py"');
+    expect(relativize("python -m pytest -q", "shop")).toBe("python -m pytest -q");
+    expect(relativize("C:\\x\\shop\\a.py", "")).toBe("C:\\x\\shop\\a.py");
+  });
+
+  it("maps Bob Shell's write_file to write", () => {
+    const d = describeToolUse(
+      { tool_name: "write_file", parameters: { path: "C:\\r\\demo-app\\shop\\pricing\\__init__.py", content: "a\nb\n" } },
+      "shop",
+    );
+    expect(d).toEqual({ verb: "write", detail: "shop/pricing/__init__.py", suf: "+2", tone: "obeys" });
   });
 });

@@ -4,7 +4,7 @@
 
 import type { Layer, MakeItSoRequest, Violation } from "../types";
 import type { Action } from "./state";
-import { parseSse, describeToolUse, describeRunOutput, clock } from "./bobEvents";
+import { parseSse, describeToolUse, describeRunOutput, clock, relativize } from "./bobEvents";
 import { stopRun } from "../api";
 
 export function startRun(req: MakeItSoRequest, dispatch: (a: Action) => void): () => void {
@@ -85,7 +85,7 @@ export function startRun(req: MakeItSoRequest, dispatch: (a: Action) => void): (
                 pendingCommands.set(toolId, (parameters.command as string | undefined) ?? "");
               } else {
                 const t = clock(Date.now() - now);
-                const desc = describeToolUse({ tool_name: toolName, parameters });
+                const desc = describeToolUse({ tool_name: toolName, parameters }, req.root_package ?? "");
                 dispatch({
                   type: "runLog",
                   line: { t, verb: desc.verb, detail: desc.detail, suf: desc.suf, tone: desc.tone },
@@ -103,7 +103,7 @@ export function startRun(req: MakeItSoRequest, dispatch: (a: Action) => void): (
                 dispatch({
                   type: "runLog",
                   // show "python -m pytest -q", not the full venv path
-                  line: { t, verb: "run", detail: command.replace(/^"?\S*[\\/](python(?:\.exe)?)"?/i, "python"), suf: runDesc.suf, tone: runDesc.tone },
+                  line: { t, verb: "run", detail: relativize(command.replace(/^"?\S*[\\/](python(?:\.exe)?)"?/i, "python"), req.root_package ?? ""), suf: runDesc.suf, tone: runDesc.tone },
                 });
               }
             }

@@ -33,6 +33,18 @@ export function parseSse(chunk: string): SseResult {
   return { events, rest };
 }
 
+/**
+ * Bob Shell reports absolute Windows paths. Show them from the root package on,
+ * with forward slashes: C:\...\demo-app\shop\api\orders.py -> shop/api/orders.py
+ */
+export function relativize(text: string, root: string): string {
+  if (!root) return text;
+  const escaped = root.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const prefix = new RegExp(String.raw`(?:[A-Za-z]:)?[\\/][^"'\s]*?[\\/](?=${escaped}[\\/])`, "g");
+  const stripped = text.replace(prefix, "");
+  return stripped === text ? text : stripped.replace(/\\/g, "/");
+}
+
 export interface ToolDescription {
   verb: string;
   detail: string;
@@ -43,19 +55,24 @@ export interface ToolDescription {
 /**
  * Describe a Bob tool_use event as a short log line.
  */
-export function describeToolUse(data: {
-  tool_name: string;
-  parameters: Record<string, unknown>;
-}): ToolDescription {
+export function describeToolUse(
+  data: {
+    tool_name: string;
+    parameters: Record<string, unknown>;
+  },
+  root = "",
+): ToolDescription {
   const { tool_name, parameters } = data;
-  const detail =
+  const detail = relativize(
     (parameters.path as string | undefined) ??
-    (parameters.file_path as string | undefined) ??
-    (parameters.command as string | undefined) ??
-    "";
+      (parameters.file_path as string | undefined) ??
+      (parameters.command as string | undefined) ??
+      "",
+    root,
+  );
 
-  // write_to_file: +N lines, obeys tone
-  if (tool_name === "write_to_file") {
+  // write_to_file / write_file (Bob Shell): +N lines, obeys tone
+  if (tool_name === "write_to_file" || tool_name === "write_file") {
     const content = (parameters.content as string | undefined) ?? "";
     const lines = content.split("\n");
     // trailing newline produces an empty last element — don't count it

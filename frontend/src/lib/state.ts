@@ -339,7 +339,8 @@ export function reducer(state: State, action: Action): State {
       if (state.graph === null) return state;
       const done = new Set(state.builtBoxes.map((b) => b.id));
       const nowBuilt = state.drawing.new_boxes.filter(
-        (b) => !done.has(b.id) && action.layers.some((l) => l.id === b.id && l.files >= 2),
+        // the package exists; whether it holds code is the backend's call (boxes_missing)
+        (b) => !done.has(b.id) && action.layers.some((l) => l.id === b.id && l.files >= 1),
       );
       return {
         ...state,

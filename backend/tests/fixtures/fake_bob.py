@@ -9,6 +9,9 @@ FAKE_BOB_MODE=box           : builds the drawn `pricing` box: creates shop/prici
                               shop/services/pricing.py into it and fixes db's import
                               (the db -> services violation disappears).
 FAKE_BOB_MODE=nobox         : like `box` but only touches db (never creates the package).
+FAKE_BOB_MODE=boxinit       : like `box`, but the code goes into shop/pricing/__init__.py
+                              (what the real Bob did in the first live new-box run).
+FAKE_BOB_MODE=emptybox      : creates shop/pricing/ with only a docstring and moves nothing.
 FAKE_BOB_MODE=fail          : prints one message, complains on stderr, exits 1.
 """
 import json
@@ -32,10 +35,24 @@ def main() -> int:
         return 1
 
     mode = os.environ.get("FAKE_BOB_MODE", "fix")
-    if mode in ("box", "nobox"):
+    if mode in ("box", "nobox", "boxinit", "emptybox"):
         emit({"type": "message", "role": "assistant", "content": "Creating the pricing package."})
         repo_file = Path("shop/db/orders_repo.py")
-        if mode == "box":
+        if mode in ("boxinit", "emptybox"):
+            # what the real Bob did in the first live run: the code lives in __init__.py
+            pkg = Path("shop/pricing")
+            emit({"type": "tool_use", "tool_name": "write_file", "tool_id": "b1", "parameters": {"path": "shop/pricing/__init__.py"}})
+            pkg.mkdir(exist_ok=True)
+            old = Path("shop/services/pricing.py")
+            if mode == "boxinit":
+                (pkg / "__init__.py").write_text(old.read_text(encoding="utf-8"), encoding="utf-8")
+                old.unlink()
+                new_import = "from shop.pricing import apply_discount"
+            else:  # an empty package: the box exists but nothing was moved into it
+                (pkg / "__init__.py").write_text('"""Pricing."""\n', encoding="utf-8")
+                new_import = "from shop.services.pricing import apply_discount"
+            emit({"type": "tool_result", "tool_id": "b1", "status": "success", "output": "created"})
+        elif mode == "box":
             pkg = Path("shop/pricing")
             emit({"type": "tool_use", "tool_name": "write_to_file", "tool_id": "b1", "parameters": {"path": "shop/pricing/__init__.py"}})
             pkg.mkdir(exist_ok=True)

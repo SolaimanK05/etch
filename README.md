@@ -251,6 +251,7 @@ Etch obeys its own rule. `etch.models` imports nothing from `etch`, the engine m
 The demo repo (`demo-app/`) is a small shop app with four planted layering violations. One of them is an import hidden inside a function body.
 
 - **Live Make it so:** IBM Bob fixed **4 of 4** violations in **1:24** for **0.61 Bobcoin**. All 10 tests passed afterwards, and `lint-imports` went from 3 broken contracts to 0. Bob's actual diff is in [`docs/demo/make_it_so_run1.patch`](docs/demo/make_it_so_run1.patch).
+- **Live Make it so with a drawn box:** Bob fixed all 4 violations **and** built the `pricing` package you drew (moving `apply_discount` out of `services` and rewiring `db` to it) in **1:04** for **0.53 Bobcoin**, with all 10 tests passing and 0 violations on the rescan. The diff is in [`docs/demo/make_it_so_run2_new_box.patch`](docs/demo/make_it_so_run2_new_box.patch).
 - **[PR #1](https://github.com/SolaimanK05/etch/pull/1)** has Bob's fix plus the etched rules. Its checks are green.
 - **[PR #2](https://github.com/SolaimanK05/etch/pull/2)** is a realistic "quick fix" that reads orders straight from the database in the API. **Every test passes, and the merge is still blocked**: `api may only import: services BROKEN — shop.api.orders -> shop.db.orders_repo (l.3)`. The tests can't see architecture drift. The drawing can.
 
@@ -337,8 +338,8 @@ etch/
 
 | Suite | Command | Result |
 |---|---|---|
-| Backend | `backend\.venv\Scripts\python.exe -m pytest -q backend` | 79 passed |
-| Frontend | `npm test` in `frontend/` | 63 passed |
+| Backend | `backend\.venv\Scripts\python.exe -m pytest -q backend` | 81 passed |
+| Frontend | `npm test` in `frontend/` | 65 passed |
 | Demo app | `backend\.venv\Scripts\python.exe -m pytest -q demo-app` | 10 passed |
 
 The runner is tested against a fake Bob ([`backend/tests/fixtures/fake_bob.py`](backend/tests/fixtures/fake_bob.py)) that speaks Bob's stream-json format, including a mode that builds a drawn box. The test suite never spends Bobcoins.
