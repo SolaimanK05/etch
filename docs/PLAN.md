@@ -23,7 +23,7 @@ Differentiator: the only entry where a drawing is both the architecture rule and
 | 2 | Backend scanner + violation engine | 4 | **0.80** (Agent only, tests pre-written by Claude) ✅ |
 | 3 | Contract compiler + CI workflow | 3 | **0.70** (Agent only, tests pre-written) ✅ |
 | 4 | Excalidraw canvas + sync | 5 | 4a logic **2.38** + 4b UI **8.74** = **11.12** ⚠️ over (large UI port) |
-| 5 | bob-runner SSE | 3 | |
+| 5 | bob-runner SSE | 3 | **3.79** (runner + stream + stop/undo + SSE client) ⚠️ slightly over |
 | 6 | demo-app + tests + planted violations | 3 | **0.67** (Agent only; Claude removed misleading noqa tags) ✅ |
 | 7 | Bob skill + custom mode generator | 2 | |
 | – | Runtime "Make it so" rehearsals (capped) | 11 | run 1: **0.61** (4/4 fixed, 1:24, tests green, lint-imports 4 kept) ✅ |

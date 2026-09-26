@@ -1,4 +1,4 @@
-import type { ArchGraph, Drawing } from "../types";
+import type { ArchGraph, Drawing, Note } from "../types";
 import type { ExcalidrawElementSkeleton } from "@excalidraw/excalidraw/data/transform";
 import { center, exitPoint, type Point } from "./geometry";
 
@@ -164,6 +164,8 @@ export interface SceneElementLike {
   isDeleted?: boolean;
   startBinding?: { elementId: string } | null;
   endBinding?: { elementId: string } | null;
+  text?: string;
+  containerId?: string | null;
 }
 
 export function drawingFromElements(elements: SceneElementLike[]): Drawing {
@@ -200,4 +202,43 @@ export function drawingFromElements(elements: SceneElementLike[]): Drawing {
   arrowList.sort((a, b) => a.source.localeCompare(b.source) || a.target.localeCompare(b.target));
 
   return { layers, arrows: arrowList };
+}
+
+export function notesFromElements(elements: SceneElementLike[]): Note[] {
+  // Build set of live etch box ids
+  const liveBoxIds = new Set<string>();
+  for (const el of elements) {
+    if (!el.isDeleted && el.type === "rectangle" && el.id.startsWith(BOX_PREFIX)) {
+      liveBoxIds.add(el.id);
+    }
+  }
+
+  // Build a map of arrow id -> {source, target} for arrows bound to two live etch boxes
+  const arrowEtchMap = new Map<string, { source: string; target: string }>();
+  for (const el of elements) {
+    if (el.isDeleted || el.type !== "arrow") continue;
+    if (!el.startBinding || !el.endBinding) continue;
+    const src = layerOfBox(el.startBinding.elementId);
+    const tgt = layerOfBox(el.endBinding.elementId);
+    if (src !== null && tgt !== null && liveBoxIds.has(el.startBinding.elementId) && liveBoxIds.has(el.endBinding.elementId)) {
+      arrowEtchMap.set(el.id, { source: src, target: tgt });
+    }
+  }
+
+  const notes: Note[] = [];
+  for (const el of elements) {
+    if (el.isDeleted || el.type !== "text") continue;
+    const text = el.text?.trim() ?? "";
+    if (!text) continue;
+    // Skip box labels (contained in an etch box)
+    if (el.containerId && liveBoxIds.has(el.containerId)) continue;
+    // Arrow label on an etch arrow
+    if (el.containerId && arrowEtchMap.has(el.containerId)) {
+      const { source, target } = arrowEtchMap.get(el.containerId)!;
+      notes.push({ text, source, target });
+    } else {
+      notes.push({ text, source: null, target: null });
+    }
+  }
+  return notes;
 }

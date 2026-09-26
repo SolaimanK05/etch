@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useRef, useReducer } from "react";
-import type { Drawing } from "./types";
+import { useCallback, useEffect, useRef, useReducer, useState } from "react";
+import type { Drawing, Note } from "./types";
 import { reducer, initialState } from "./lib/state";
 import { drawingOfGraph } from "./lib/drawing";
-import { scan, check, contracts, etchIt, undo } from "./api";
+import { scan, check, contracts, etchIt, openPr, undo } from "./api";
 import { startRun } from "./lib/run";
 import { simulateRun } from "./lib/simulate";
 import type { MakeItSoRequest } from "./types";
@@ -23,6 +23,9 @@ export default function App() {
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const cancelRunRef = useRef<(() => void) | null>(null);
   const checkDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const notesRef = useRef<Note[]>([]);
+  const [prMessage, setPrMessage] = useState<string | null>(null);
+  const [prPending, setPrPending] = useState(false);
 
   // Determine simulate mode
   const isSimulated = typeof window !== "undefined" &&
@@ -152,6 +155,10 @@ export default function App() {
     dispatch({ type: "runFailed", error: "Stopped by user" });
   }, []);
 
+  const handleNotesChange = useCallback((notes: Note[]) => {
+    notesRef.current = notes;
+  }, []);
+
   const handleEtchIt = useCallback(async () => {
     if (!state.graph) return;
     try {
@@ -159,6 +166,7 @@ export default function App() {
         repo_path: state.repoPath,
         root_package: state.graph.root_package,
         drawing: state.drawing,
+        notes: notesRef.current,
       };
       // Simulated runs never touched the code, so never write contracts into the
       // repo either: compile them read-only and show what would be written.
@@ -178,6 +186,30 @@ export default function App() {
       });
     }
   }, [state.graph, state.repoPath, state.drawing, isSimulated]);
+
+  const handleOpenPr = useCallback(async () => {
+    if (isSimulated) {
+      setPrMessage("Simulated: no branch created");
+      return;
+    }
+    setPrPending(true);
+    setPrMessage(null);
+    try {
+      const resp = await openPr({ repo_path: state.repoPath });
+      if (resp.url) {
+        window.open(resp.url, "_blank", "noopener");
+      } else {
+        setPrMessage("Branch etch/make-it-so created locally (push failed or no GitHub remote)");
+      }
+    } catch (err) {
+      dispatch({
+        type: "runFailed",
+        error: err instanceof Error ? err.message : String(err),
+      });
+    } finally {
+      setPrPending(false);
+    }
+  }, [state.repoPath, isSimulated]);
 
   const handleUndo = useCallback(async () => {
     try {
@@ -223,6 +255,7 @@ export default function App() {
         <Canvas
           state={state}
           onDrawingChange={handleDrawingChange}
+          onNotesChange={handleNotesChange}
           onHover={handleHover}
         />
         <Rail
@@ -233,6 +266,9 @@ export default function App() {
           onStop={handleStop}
           onEtchIt={handleEtchIt}
           onUndo={handleUndo}
+          onOpenPr={handleOpenPr}
+          prPending={prPending}
+          prMessage={prMessage}
         />
       </div>
     </div>

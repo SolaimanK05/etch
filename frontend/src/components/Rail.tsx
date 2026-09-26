@@ -12,6 +12,9 @@ interface RailProps {
   onStop: () => void;
   onEtchIt: () => void;
   onUndo: () => void;
+  onOpenPr: () => void;
+  prPending: boolean;
+  prMessage: string | null;
 }
 
 function pad2(n: number): string {
@@ -32,7 +35,7 @@ function clockStr(ms: number): string {
  *  4. Action slot (92px)
  *  5. Footer (Etch it)
  */
-export function Rail({ state, simulated, onHover, onMakeItSo, onStop, onEtchIt, onUndo }: RailProps) {
+export function Rail({ state, simulated, onHover, onMakeItSo, onStop, onEtchIt, onUndo, onOpenPr, prPending, prMessage }: RailProps) {
   const { phase, rows, drawing, coins, elapsedMs } = state;
   const open = openCount(state);
   const canEtchNow = canEtch(state);
@@ -338,21 +341,28 @@ export function Rail({ state, simulated, onHover, onMakeItSo, onStop, onEtchIt, 
         {/* etched: Open pull request */}
         <div className="layer" style={{
           position: "absolute", inset: 0,
-          display: "flex", flexDirection: "column", justifyContent: "center",
+          display: "flex", flexDirection: "column", justifyContent: "center", gap: 8,
           ...ctaEtched,
         }}>
           <button
-            className="press"
-            title="Coming in task 7"
-            disabled
+            className="press cta"
+            onClick={prPending ? undefined : onOpenPr}
+            disabled={prPending}
             style={{
               height: 46,
+              display: "flex", alignItems: "center", justifyContent: "center",
               border: 0, borderRadius: "var(--r-control)",
               background: "var(--ink)", color: "#FFFFFF",
-              font: "500 15px var(--font-ui)", cursor: "not-allowed",
-              opacity: 0.5,
+              font: "500 15px var(--font-ui)",
+              cursor: prPending ? "not-allowed" : "pointer",
+              opacity: prPending ? 0.7 : 1,
             }}
-          >Open pull request</button>
+          >{prPending ? "Opening…" : "Open pull request"}</button>
+          {prMessage && (
+            <span style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.4 }}>
+              {prMessage}
+            </span>
+          )}
         </div>
       </div>
 

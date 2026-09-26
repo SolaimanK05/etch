@@ -12,6 +12,7 @@ function fileNote(path: string, importlinter: string): string {
   }
   if (path.startsWith(".github/workflows/")) return "PR check";
   if (path.startsWith(".bob/skills/")) return "Bob skill";
+  if (path === ".bob/custom_modes.yaml") return "Bob mode";
   if (path === ".etch/drawing.json") return "the sketch";
   return "";
 }

@@ -4,7 +4,7 @@ import type { ExcalidrawImperativeAPI, AppState } from "@excalidraw/excalidraw/t
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import type { State } from "../lib/state";
 import type { ArchGraph } from "../types";
-import { drawingFromElements, sceneSkeleton, layerOfBox } from "../lib/drawing";
+import { drawingFromElements, notesFromElements, sceneSkeleton, layerOfBox } from "../lib/drawing";
 import { getItem, setItem } from "../lib/persist";
 import { ViolationOverlay } from "./ViolationOverlay";
 import { Toast } from "./Toast";
@@ -25,6 +25,7 @@ interface ViewState {
 interface CanvasProps {
   state: State;
   onDrawingChange: (drawing: import("../types").Drawing) => void;
+  onNotesChange: (notes: import("../types").Note[]) => void;
   onHover: (edge: string | null) => void;
 }
 
@@ -56,7 +57,7 @@ function buildElements(graph: ArchGraph, repoPath: string) {
  * Canvas — Excalidraw + ViolationOverlay + Toast + Seal + Legend
  * DESIGN.md §6
  */
-export function Canvas({ state, onDrawingChange, onHover }: CanvasProps) {
+export function Canvas({ state, onDrawingChange, onNotesChange, onHover }: CanvasProps) {
   const apiRef = useRef<ExcalidrawImperativeAPI | null>(null);
   // Excalidraw hands over its API asynchronously after mount; keep it in state
   // so the scene-building effect re-runs once it arrives.
@@ -68,6 +69,8 @@ export function Canvas({ state, onDrawingChange, onHover }: CanvasProps) {
 
   // Track last drawing JSON to avoid spurious dispatches
   const lastDrawingJsonRef = useRef("");
+  // Track last notes JSON to avoid spurious dispatches
+  const lastNotesJsonRef = useRef("");
   // Debounce timer for drawing-changed reports
   const drawingDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Throttle timer for saving positions
@@ -162,7 +165,8 @@ export function Canvas({ state, onDrawingChange, onHover }: CanvasProps) {
       });
 
       // Compute drawing and report changes (debounced 250ms)
-      const drawing = drawingFromElements(Array.from(elements));
+      const elArray = Array.from(elements);
+      const drawing = drawingFromElements(elArray);
       const json = JSON.stringify(drawing);
       if (json !== lastDrawingJsonRef.current) {
         lastDrawingJsonRef.current = json;
@@ -170,6 +174,14 @@ export function Canvas({ state, onDrawingChange, onHover }: CanvasProps) {
         drawingDebounceRef.current = setTimeout(() => {
           onDrawingChange(drawing);
         }, 250);
+      }
+
+      // Compute notes and report changes
+      const notes = notesFromElements(elArray);
+      const notesJson = JSON.stringify(notes);
+      if (notesJson !== lastNotesJsonRef.current) {
+        lastNotesJsonRef.current = notesJson;
+        onNotesChange(notes);
       }
 
       // Save box positions (throttled 500ms)
@@ -189,7 +201,7 @@ export function Canvas({ state, onDrawingChange, onHover }: CanvasProps) {
         }, SAVE_THROTTLE_MS);
       }
     },
-    [onDrawingChange, state.repoPath],
+    [onDrawingChange, onNotesChange, state.repoPath],
   );
 
   // Etched seal — motion #19
