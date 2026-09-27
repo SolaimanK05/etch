@@ -11,6 +11,8 @@ import { FirstRun } from "./components/FirstRun";
 import { Canvas } from "./components/Canvas";
 import { Rail } from "./components/Rail";
 import { getItem, setItem } from "./lib/persist";
+import { STATIC_DEMO, demoRunFinished } from "./demo/staticApi";
+import { DemoBanner } from "./components/DemoBanner";
 
 /** Compare two layer-id sets (both sorted) */
 function layerSetKey(graph: import("./types").ArchGraph | null): string {
@@ -38,8 +40,14 @@ export default function App() {
   }, []);
 
   // Determine simulate mode
-  const isSimulated = typeof window !== "undefined" &&
-    window.location.search.includes("simulate");
+  const isSimulated = STATIC_DEMO || (typeof window !== "undefined" &&
+    window.location.search.includes("simulate"));
+
+  // Hosted demo: once the simulated run finishes, the recorded code obeys the drawing
+  useEffect(() => {
+    if (STATIC_DEMO && state.phase === "done") demoRunFinished(state.drawing);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.phase]);
 
   // Clock tick while running
   useEffect(() => {
@@ -252,6 +260,7 @@ export default function App() {
   if (showFirstRun) {
     return (
       <div className="app-layout">
+        {STATIC_DEMO && <DemoBanner />}
         <TopBar state={state} onRescan={handleRescan} firstRun />
         <FirstRun state={state} onScan={handleScan} />
       </div>
@@ -260,6 +269,7 @@ export default function App() {
 
   return (
     <div className="app-layout">
+      {STATIC_DEMO && <DemoBanner />}
       <TopBar state={state} onRescan={handleRescan} />
       <div className="app-body">
         <Canvas

@@ -1,5 +1,6 @@
 import type { FormEvent } from "react";
 import type { State } from "../lib/state";
+import { STATIC_DEMO } from "../demo/staticApi";
 
 interface FirstRunProps {
   state: State;
@@ -93,7 +94,9 @@ export function FirstRun({ state, onScan }: FirstRunProps) {
               name="repo"
               className="field"
               type="text"
-              defaultValue={repoPath}
+              // the hosted demo only has the bundled demo shop app
+              defaultValue={repoPath || (STATIC_DEMO ? "demo-app" : "")}
+              readOnly={STATIC_DEMO}
               placeholder={String.raw`C:\Users\you\Desktop\Projects\demo-app`}
               style={{
                 flexGrow: 1,
