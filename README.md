@@ -9,8 +9,9 @@ Draw your architecture. IBM Bob makes the code obey. The drawing becomes a rule 
 [![Built with IBM Bob 2.0](https://img.shields.io/badge/Built%20with-IBM%20Bob%202.0-052FAD?style=for-the-badge&logo=ibm&logoColor=white)](#built-with-ibm-bob)
 [![IBM Bob Hackathon](https://img.shields.io/badge/lablab.ai-IBM%20Bob%202.0%20Hackathon-111111?style=for-the-badge)](https://lablab.ai)
 [![License: MIT](https://img.shields.io/badge/License-MIT-346538?style=for-the-badge)](LICENSE)
+[![Live demo](https://img.shields.io/badge/Live%20demo-etch--ashy.vercel.app-7A5200?style=for-the-badge&logo=vercel&logoColor=white)](https://etch-ashy.vercel.app)
 
-**[How it works](#how-it-works)** &nbsp;·&nbsp; **[Proof it works](#proof-it-works)** &nbsp;·&nbsp; **[Built with IBM Bob](#built-with-ibm-bob)** &nbsp;·&nbsp; **[Run it](#run-it)**
+**[Live demo](https://etch-ashy.vercel.app)** &nbsp;·&nbsp; **[How it works](#how-it-works)** &nbsp;·&nbsp; **[Proof it works](#proof-it-works)** &nbsp;·&nbsp; **[Built with IBM Bob](#built-with-ibm-bob)** &nbsp;·&nbsp; **[Run it](#run-it)**
 
 <br/>
 
@@ -285,6 +286,10 @@ Bob is used in three places: it built Etch, it runs inside Etch, and Etch genera
 <br/>
 
 ## Run it
+
+**No install:** try the hosted demo at **https://etch-ashy.vercel.app**. It scans the bundled demo shop app in your browser, so the red arrows and the file:line list are real; Make it so is simulated there (no IBM Bob call). Build it yourself with `npm run build:demo` in `frontend/`.
+
+For the real thing, with IBM Bob refactoring your code, run it locally.
 
 Requirements: Python 3.12, Node 20.19+ (or 22.12+), git, and IBM Bob Shell (`bob`) with `BOB_API_KEY` set in your environment. Etch never writes the key to disk. The commands below are for Windows.
 
